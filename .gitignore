@@ -1,0 +1,7 @@
+**/.DS_Store
+
+# Directory to store the data
+data
+
+# Directory to store checkpoints
+models
