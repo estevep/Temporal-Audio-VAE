@@ -5,3 +5,6 @@ data
 
 # Directory to store checkpoints
 models
+
+**/runs
+*.pth
