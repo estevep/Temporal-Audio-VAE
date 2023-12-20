@@ -6,5 +6,16 @@ data
 # Directory to store checkpoints
 models
 
+# tensorboard
 **/runs
+
+# pytorch checkpoints
 *.pth
+
+# latex stuff
+*.aux
+*.fls
+*.log
+*.fdb_latexmk
+*.synctex*
+*.out
