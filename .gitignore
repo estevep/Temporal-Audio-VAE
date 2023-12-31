@@ -19,3 +19,6 @@ models
 *.fdb_latexmk
 *.synctex*
 *.out
+
+# notebooks output
+notebooks/images
