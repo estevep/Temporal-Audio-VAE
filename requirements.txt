@@ -11,3 +11,6 @@ tensorboard
 ipykernel
 tqdm
 matplotlib
+lmdb
+udls
+librosa
