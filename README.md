@@ -2,6 +2,12 @@
 
 This is the repo of the ATIAM ML project "Exploring the latent space of a temporal VAE for audio loops generation"
 
+## Installation
+
+```shell
+pip install -r requirements.txt
+```
+
 ## Repository structure
 
 ```bash
