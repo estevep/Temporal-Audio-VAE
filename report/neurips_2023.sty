@@ -272,10 +272,27 @@
     \@bottomtitlebar
     \if@submission
       \begin{tabular}[t]{c}\bf\rule{\z@}{24\p@}
-        Anonymous Author(s) \\
-        Affiliation \\
-        Address \\
-        \texttt{email} \\
+        Étienne André \\
+        ATIAM \\
+        IRCAM\\
+        \texttt{eti.andre@gmail.com} \\
+        \and 
+        \textbf{Paul Estève} \\
+        ATIAM \\
+        IRCAM \\
+        \texttt{paul.esteve@ircam.fr} \\
+        \and 
+        \textbf{Antoine Souchaud} \\
+        ATIAM \\
+        IRCAM \\
+        \texttt{souchaud@ircam.fr} \\
+        \and 
+        \textbf{Enguérand Tamagna} \\
+        ATIAM \\
+        IRCAM \\
+        \texttt{tamagna@ircam.fr} \\
+
+        
       \end{tabular}%
     \else
       \def\And{%
@@ -318,21 +335,21 @@
 }
 
 % handle tweaks for camera-ready copy vs. submission copy
-\if@preprint
-  \newcommand{\@noticestring}{%
-    Preprint. Under review.%
-  }
-\else
-  \if@neuripsfinal
-    \newcommand{\@noticestring}{%
-      \@neuripsordinal\/ Conference on Neural Information Processing Systems
-      (NeurIPS \@neuripsyear).%, \@neuripslocation.%
-    }
-  \else
-    \newcommand{\@noticestring}{%
-      Submitted to \@neuripsordinal\/ Conference on Neural Information
-      Processing Systems (NeurIPS \@neuripsyear). Do not distribute.%
-    }
+%\if@preprint
+%  \newcommand{\@noticestring}{%
+%    Preprint. Under review.%
+%  }
+%\else
+%  \if@neuripsfinal
+%    \newcommand{\@noticestring}{%
+%      \@neuripsordinal\/ Conference on Neural Information Processing Systems
+%      (NeurIPS \@neuripsyear).%, \@neuripslocation.%
+%    }
+%  \else
+%    \newcommand{\@noticestring}{%
+%      Submitted to \@neuripsordinal\/ Conference on Neural Information
+%      Processing Systems (NeurIPS \@neuripsyear). Do not distribute.%
+%    }
 
     % hide the acknowledgements
     \NewEnviron{hide}{}
