@@ -11,6 +11,7 @@ models
 
 # pytorch checkpoints
 *.pth
+*.pt
 
 # latex stuff
 *.aux
@@ -22,3 +23,6 @@ models
 
 # notebooks output
 notebooks/images
+
+# python stuff
+*.pyc
