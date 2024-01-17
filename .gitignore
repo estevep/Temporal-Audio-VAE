@@ -9,10 +9,6 @@ models
 # tensorboard
 **/runs
 
-# pytorch checkpoints
-*.pth
-*.pt
-
 # latex stuff
 *.aux
 *.fls
