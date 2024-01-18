@@ -134,7 +134,7 @@ class Log1pMelSpec(nn.Module):
             log1p_mel_specgram
             phase (optional): if given, will copy phase to reconstruct the waveform
                                 if not, will use griffin-lim to reconstruct phase
-        
+
         Returns:
             reconstructed waveform
         """
