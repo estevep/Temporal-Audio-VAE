@@ -1,0 +1,93 @@
+@misc{caillonRAVEVariationalAutoencoder2021,
+  title = {{{RAVE}}: {{A}} Variational Autoencoder for Fast and High-Quality Neural Audio Synthesis},
+  shorttitle = {{{RAVE}}},
+  author = {Caillon, Antoine and Esling, Philippe},
+  year = {2021},
+  month = dec,
+  number = {arXiv:2111.05011},
+  eprint = {2111.05011},
+  primaryclass = {cs, eess},
+  publisher = {{arXiv}},
+  urldate = {2024-01-18},
+  abstract = {Deep generative models applied to audio have improved by a large margin the state-of-the-art in many speech and music related tasks. However, as raw waveform modelling remains an inherently difficult task, audio generative models are either computationally intensive, rely on low sampling rates, are complicated to control or restrict the nature of possible signals. Among those models, Variational AutoEncoders (VAE) give control over the generation by exposing latent variables, although they usually suffer from low synthesis quality. In this paper, we introduce a Realtime Audio Variational autoEncoder (RAVE) allowing both fast and high-quality audio waveform synthesis. We introduce a novel two-stage training procedure, namely representation learning and adversarial fine-tuning. We show that using a post-training analysis of the latent space allows a direct control between the reconstruction fidelity and the representation compactness. By leveraging a multi-band decomposition of the raw waveform, we show that our model is the first able to generate 48kHz audio signals, while simultaneously running 20 times faster than real-time on a standard laptop CPU. We evaluate synthesis quality using both quantitative and qualitative subjective experiments and show the superiority of our approach compared to existing models. Finally, we present applications of our model for timbre transfer and signal compression. All of our source code and audio examples are publicly available.},
+  archiveprefix = {arxiv},
+  langid = {english},
+  keywords = {Computer Science - Machine Learning,Computer Science - Sound,Electrical Engineering and Systems Science - Audio and Speech Processing},
+  file = {/Users/estevep/Zotero/storage/4QJ8R284/Caillon et Esling - 2021 - RAVE A variational autoencoder for fast and high-.pdf}
+}
+
+@misc{engelDDSPDifferentiableDigital2020,
+  title = {{{DDSP}}: {{Differentiable Digital Signal Processing}}},
+  shorttitle = {{{DDSP}}},
+  author = {Engel, Jesse and Hantrakul, Lamtharn and Gu, Chenjie and Roberts, Adam},
+  year = {2020},
+  month = jan,
+  number = {arXiv:2001.04643},
+  eprint = {2001.04643},
+  primaryclass = {cs, eess, stat},
+  publisher = {{arXiv}},
+  urldate = {2024-01-18},
+  abstract = {Most generative models of audio directly generate samples in one of two domains: time or frequency. While sufficient to express any signal, these representations are inefficient, as they do not utilize existing knowledge of how sound is generated and perceived. A third approach (vocoders/synthesizers) successfully incorporates strong domain knowledge of signal processing and perception, but has been less actively researched due to limited expressivity and difficulty integrating with modern auto-differentiation-based machine learning methods. In this paper, we introduce the Differentiable Digital Signal Processing (DDSP) library, which enables direct integration of classic signal processing elements with deep learning methods. Focusing on audio synthesis, we achieve high-fidelity generation without the need for large autoregressive models or adversarial losses, demonstrating that DDSP enables utilizing strong inductive biases without losing the expressive power of neural networks. Further, we show that combining interpretable modules permits manipulation of each separate model component, with applications such as independent control of pitch and loudness, realistic extrapolation to pitches not seen during training, blind dereverberation of room acoustics, transfer of extracted room acoustics to new environments, and transformation of timbre between disparate sources. In short, DDSP enables an interpretable and modular approach to generative modeling, without sacrificing the benefits of deep learning. The library is publicly available1 and we welcome further contributions from the community and domain experts.},
+  archiveprefix = {arxiv},
+  langid = {english},
+  keywords = {Computer Science - Machine Learning,Computer Science - Sound,Electrical Engineering and Systems Science - Audio and Speech Processing,Electrical Engineering and Systems Science - Signal Processing,Statistics - Machine Learning},
+  file = {/Users/estevep/Zotero/storage/V75MHLKL/Engel et al. - 2020 - DDSP Differentiable Digital Signal Processing.pdf}
+}
+
+@misc{engelGANSynthAdversarialNeural2019,
+  title = {{{GANSynth}}: {{Adversarial Neural Audio Synthesis}}},
+  shorttitle = {{{GANSynth}}},
+  author = {Engel, Jesse and Agrawal, Kumar Krishna and Chen, Shuo and Gulrajani, Ishaan and Donahue, Chris and Roberts, Adam},
+  year = {2019},
+  month = apr,
+  number = {arXiv:1902.08710},
+  eprint = {1902.08710},
+  primaryclass = {cs, eess, stat},
+  publisher = {{arXiv}},
+  urldate = {2024-01-18},
+  abstract = {Efficient audio synthesis is an inherently difficult machine learning task, as human perception is sensitive to both global structure and fine-scale waveform coherence. Autoregressive models, such as WaveNet, model local structure at the expense of global latent structure and slow iterative sampling, while Generative Adversarial Networks (GANs), have global latent conditioning and efficient parallel sampling, but struggle to generate locally-coherent audio waveforms. Herein, we demonstrate that GANs can in fact generate high-fidelity and locally-coherent audio by modeling log magnitudes and instantaneous frequencies with sufficient frequency resolution in the spectral domain. Through extensive empirical investigations on the NSynth dataset, we demonstrate that GANs are able to outperform strong WaveNet baselines on automated and human evaluation metrics, and efficiently generate audio several orders of magnitude faster than their autoregressive counterparts.},
+  archiveprefix = {arxiv},
+  langid = {english},
+  keywords = {Computer Science - Machine Learning,Computer Science - Sound,Electrical Engineering and Systems Science - Audio and Speech Processing,Statistics - Machine Learning},
+  file = {/Users/estevep/Zotero/storage/JMSBCFTZ/Engel et al. - 2019 - GANSynth Adversarial Neural Audio Synthesis.pdf}
+}
+
+@article{higginsVVAELEARNINGBASIC2017,
+  title = {{$\beta$}-{{VAE}}: {{LEARNING BASIC VISUAL CONCEPTS WITH A CONSTRAINED VARIATIONAL FRAMEWORK}}},
+  author = {Higgins, Irina and Matthey, Loic and Pal, Arka and Burgess, Christopher and Glorot, Xavier and Botvinick, Matthew and Mohamed, Shakir and Lerchner, Alexander},
+  year = {2017},
+  abstract = {Learning an interpretable factorised representation of the independent data generative factors of the world without supervision is an important precursor for the development of artificial intelligence that is able to learn and reason in the same way that humans do. We introduce {$\beta$}-VAE, a new state-of-the-art framework for automated discovery of interpretable factorised latent representations from raw image data in a completely unsupervised manner. Our approach is a modification of the variational autoencoder (VAE) framework. We introduce an adjustable hyperparameter {$\beta$} that balances latent channel capacity and independence constraints with reconstruction accuracy. We demonstrate that {$\beta$}-VAE with appropriately tuned {$\beta$} {$>$} 1 qualitatively outperforms VAE ({$\beta$} = 1), as well as state of the art unsupervised (InfoGAN) and semi-supervised (DC-IGN) approaches to disentangled factor learning on a variety of datasets (celebA, faces and chairs). Furthermore, we devise a protocol to quantitatively compare the degree of disentanglement learnt by different models, and show that our approach also significantly outperforms all baselines quantitatively. Unlike InfoGAN, {$\beta$}-VAE is stable to train, makes few assumptions about the data and relies on tuning a single hyperparameter {$\beta$}, which can be directly optimised through a hyperparameter search using weakly labelled data or through heuristic visual inspection for purely unsupervised data.},
+  langid = {english},
+  file = {/Users/estevep/Zotero/storage/GLAG6U5L/Higgins et al. - 2017 - β-VAE LEARNING BASIC VISUAL CONCEPTS WITH A CONST.pdf}
+}
+
+@misc{kingmaAutoEncodingVariationalBayes2022,
+  title = {Auto-{{Encoding Variational Bayes}}},
+  author = {Kingma, Diederik P. and Welling, Max},
+  year = {2022},
+  month = dec,
+  number = {arXiv:1312.6114},
+  eprint = {1312.6114},
+  primaryclass = {cs, stat},
+  publisher = {{arXiv}},
+  urldate = {2024-01-18},
+  abstract = {How can we perform efficient inference and learning in directed probabilistic models, in the presence of continuous latent variables with intractable posterior distributions, and large datasets? We introduce a stochastic variational inference and learning algorithm that scales to large datasets and, under some mild differentiability conditions, even works in the intractable case. Our contributions are two-fold. First, we show that a reparameterization of the variational lower bound yields a lower bound estimator that can be straightforwardly optimized using standard stochastic gradient methods. Second, we show that for i.i.d. datasets with continuous latent variables per datapoint, posterior inference can be made especially efficient by fitting an approximate inference model (also called a recognition model) to the intractable posterior using the proposed lower bound estimator. Theoretical advantages are reflected in experimental results.},
+  archiveprefix = {arxiv},
+  langid = {english},
+  keywords = {Computer Science - Machine Learning,Statistics - Machine Learning},
+  file = {/Users/estevep/Zotero/storage/62GEE8AG/Kingma et Welling - 2022 - Auto-Encoding Variational Bayes.pdf}
+}
+
+@article{kumarMelGANGenerativeAdversarial2019,
+  title = {{{MelGAN}}: {{Generative Adversarial Networks}} for {{Conditional Waveform Synthesis}}},
+  shorttitle = {{{MelGAN}}},
+  author = {Kumar, Kundan and Kumar, Rithesh and {de Boissiere}, Thibault and Gestin, Lucas and Teoh, Wei Zhen and Sotelo, Jose and {de Brebisson}, Alexandre and Bengio, Yoshua and Courville, Aaron},
+  year = {2019},
+  publisher = {{arXiv}},
+  doi = {10.48550/ARXIV.1910.06711},
+  urldate = {2024-01-18},
+  abstract = {Previous works (Donahue et al., 2018a; Engel et al., 2019a) have found that generating coherent raw audio waveforms with GANs is challenging. In this paper, we show that it is possible to train GANs reliably to generate high quality coherent waveforms by introducing a set of architectural changes and simple training techniques. Subjective evaluation metric (Mean Opinion Score, or MOS) shows the effectiveness of the proposed approach for high quality mel-spectrogram inversion. To establish the generality of the proposed techniques, we show qualitative results of our model in speech synthesis, music domain translation and unconditional music synthesis. We evaluate the various components of the model through ablation studies and suggest a set of guidelines to design general purpose discriminators and generators for conditional sequence synthesis tasks. Our model is non-autoregressive, fully convolutional, with significantly fewer parameters than competing models and generalizes to unseen speakers for mel-spectrogram inversion. Our pytorch implementation runs at more than 100x faster than realtime on GTX 1080Ti GPU and more than 2x faster than real-time on CPU, without any hardware specific optimization tricks.},
+  copyright = {arXiv.org perpetual, non-exclusive license},
+  keywords = {Audio and Speech Processing (eess.AS),Computation and Language (cs.CL),FOS: Computer and information sciences,{FOS: Electrical engineering, electronic engineering, information engineering},Machine Learning (cs.LG),Sound (cs.SD)},
+  file = {/Users/estevep/Zotero/storage/QB3WGN4H/NeurIPS-2019-melgan-generative-adversarial-networks-for-conditional-waveform-synthesis-Paper.pdf}
+}
