@@ -120,6 +120,7 @@ class Log1pMelSpecPghi(nn.Module):
         Returns:
             (log_mel_spectrogram, phase)
         """
+        
         specgram = self.spectrogram(waveform)  # Dimension: (…, freq, time)
         mag, phase = torch.abs(specgram), torch.angle(specgram)
         mel_specgram = self.mel_scale(mag)  # dimension: (…, n_mels, time)

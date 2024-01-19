@@ -46,7 +46,7 @@ class LoopDataset(torch.utils.data.Dataset):
 
         return audio
 
-    def get_loaders(self, batch_size=128, num_threads=0, train_ratio=0.2):
+    def get_loaders(self, batch_size=128, num_threads=0, train_ratio=0.8):
         generator = torch.Generator().manual_seed(42)
         train_dataset, valid_dataset = torch.utils.data.random_split(
             self, [train_ratio, 1 - train_ratio], generator

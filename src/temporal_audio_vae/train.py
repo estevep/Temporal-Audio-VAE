@@ -17,6 +17,7 @@ def train(dataset_path: str):
     # load dataset
     dataset = LoopDataset(dataset_path)
     train_loader, valid_loader = dataset.get_loaders()
+    
 
     # hyperparameters
     n_epochs = 50
@@ -40,7 +41,7 @@ def train(dataset_path: str):
         n_fft=n_fft,
         griffin_lim_iter=griffin_lim_iter,
         hop_length=hop_length,
-    ).to(device)
+    )
 
     n_frames = transform.get_n_frames(LoopDataset.LEN_SAMPLES)
     train_norm = find_normalizer(train_loader, "train", transform).to(device)
@@ -55,6 +56,7 @@ def train(dataset_path: str):
     model = MelSpecVAE(encoder, decoder, n_hidden, n_latent).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     recons_criterion = torch.nn.MSELoss(reduction="sum")
+    transform = transform.to(device)
 
     WRITER = SummaryWriter(comment="train")
 
