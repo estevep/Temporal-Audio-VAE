@@ -1,7 +1,8 @@
+from typing import Tuple
 from .datasets import LoopDataset
 from .models import MelSpecVAE, construct_encoder_decoder
 from .transforms import Log1pMelSpecPghi
-from .helpers import find_normalizer
+from .helpers import beta_warmup, find_normalizer
 import torch
 import logging
 import torchvision
@@ -10,7 +11,17 @@ from torch.utils.tensorboard import SummaryWriter
 logger = logging.getLogger(__name__)
 
 
-def train(dataset_path: str):
+def train(
+    dataset_path: str,
+    beta: float = 0,
+    use_beta_warmup: bool = False,
+    warmup_epoch_interval: Tuple[float, float] = None,
+    warmup_beta_interval: Tuple[float, float] = None,
+    epoch_start: int = 1,
+    epoch_end: int = None,
+    evaluate_every_nth_epoch: int = None,
+    generate_every_nth_epoch: int = None,
+):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info("device: %s", device)
 
@@ -19,17 +30,12 @@ def train(dataset_path: str):
     train_loader, valid_loader = dataset.get_loaders()
 
     # hyperparameters
-    n_epochs = 50
     n_latent = 16
     n_hidden = 128
     n_mels = 512
     n_fft = 1024
     griffin_lim_iter = 64
     hop_length = 256
-    beta_interval = (0, 1)  # min, max
-    beta_epoch_interval = (100, 400)  # start, end
-    generate_every_nth_epoch = 10
-    evaluate_every_nth_epoch = 10
     n_sounds_generated_from_dataset = 4
     n_sounds_generated_from_random = 8
 
@@ -41,17 +47,14 @@ def train(dataset_path: str):
         griffin_lim_iter=griffin_lim_iter,
         hop_length=hop_length,
     ).to(device)
-
     n_frames = transform.get_n_frames(LoopDataset.LEN_SAMPLES)
+
+    # normalize dataset
     train_norm = find_normalizer(train_loader, "train", transform).to(device)
     valid_norm = find_normalizer(valid_loader, "valid", transform).to(device)
 
-    print(next(iter(train_loader)).size())
-    print(transform(next(iter(train_loader)))[0].size())
-
-    # Construct encoder and decoder
-    encoder, decoder = construct_encoder_decoder(n_hidden=n_hidden, n_latent=n_latent)
     # Build the VAE model
+    encoder, decoder = construct_encoder_decoder(n_hidden=n_hidden, n_latent=n_latent)
     model = MelSpecVAE(encoder, decoder, n_hidden, n_latent).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     recons_criterion = torch.nn.MSELoss(reduction="sum")
@@ -74,15 +77,35 @@ def train(dataset_path: str):
             sample_rate=LoopDataset.FS,
         )
 
-    for epoch in range(1, n_epochs + 1):
-        print("Epoch = {}".format(epoch))
-        # TRAINING
+    logger.info("BEGINNING TRAINING")
+    if use_beta_warmup:
+        logger.info(
+            f"Using beta warmup: {warmup_epoch_interval=}, {warmup_beta_interval=}"
+        )
+    else:
+        logger.info(f"Using fixed {beta=:.2f}")
+    logger.info(f"{epoch_start=} {epoch_end=}")
+    logger.info(f"{evaluate_every_nth_epoch=}")
+    logger.info(f"{generate_every_nth_epoch=}")
+    logger.info(f"{n_latent=}")
+    logger.info(f"{n_hidden=}")
+    logger.info(f"{n_mels=}")
+    logger.info(f"{n_fft=}")
+    logger.info(f"{griffin_lim_iter=}")
+    logger.info(f"{hop_length=}")
+    logger.info(f"{n_sounds_generated_from_dataset=}")
+    logger.info(f"{n_sounds_generated_from_random=}")
+
+
+    ### TRAINING LOOP
+    epoch = epoch_start
+    while epoch_end is None or epoch < epoch_end:
         model.train()
-        logger.info("training")
 
-        # beta = beta_warmup(epoch, beta_interval, beta_epoch_interval)
-        beta = 0
+        if use_beta_warmup:
+            beta = beta_warmup(epoch, warmup_beta_interval, warmup_epoch_interval)
 
+        logger.info(f"Training epoch = {epoch}, beta={beta:.2f}")
         full_loss = 0
         recons_loss = 0
         kl_div = 0
@@ -108,15 +131,14 @@ def train(dataset_path: str):
         WRITER.add_scalar("loss/train/reconstruction", recons_loss, epoch)
         WRITER.add_scalar("loss/train/kl_div", kl_div, epoch)
 
-        model.eval()
-        logger.info("evaluation")
-
-        full_loss = 0
-        recons_loss = 0
-        kl_div = 0
-
         ## EVALUATION
-        if epoch % evaluate_every_nth_epoch == 0 or epoch == n_epochs - 1:
+        if evaluate_every_nth_epoch and epoch % evaluate_every_nth_epoch == 0:
+            model.eval()
+            logger.info("Evaluating model")
+
+            full_loss = 0
+            recons_loss = 0
+            kl_div = 0
             for i, waveform in enumerate(valid_loader):
                 waveform = waveform.to(device)
                 mag, phase = transform.forward(waveform)
@@ -138,7 +160,7 @@ def train(dataset_path: str):
             WRITER.add_scalar("loss/valid/reconstruction", recons_loss, epoch)
             WRITER.add_scalar("loss/valid/kl_div", kl_div, epoch)
 
-        if epoch % generate_every_nth_epoch == 0 or epoch == n_epochs - 1:
+        if generate_every_nth_epoch and epoch % generate_every_nth_epoch == 0:
             logger.info("generating from dataset")
             with torch.no_grad():
                 waveform = next(iter(valid_loader)).to(device)
@@ -214,3 +236,4 @@ def train(dataset_path: str):
                     epoch,
                     sample_rate=LoopDataset.FS,
                 )
+    ### END TRAINING LOOP
