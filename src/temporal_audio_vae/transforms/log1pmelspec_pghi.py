@@ -39,6 +39,7 @@ class Log1pMelSpecPghi(nn.Module):
         pad_mode: str = "reflect",
         norm: Optional[str] = None,
         griffin_lim_iter=32,
+        drop_last_column=True,
     ):
         super(Log1pMelSpecPghi, self).__init__()
 
@@ -54,6 +55,7 @@ class Log1pMelSpecPghi(nn.Module):
         self.norm = norm
         self.n_stft = self.n_fft // 2 + 1
         self.griffin_lim_iter = griffin_lim_iter
+        self.drop_last_column = drop_last_column
 
         self.window_np, self.gamma = pghipy.get_default_window(self.n_fft)
         self.winsynth_np = pghipy.calculate_synthesis_window(
@@ -122,6 +124,10 @@ class Log1pMelSpecPghi(nn.Module):
         mag, phase = torch.abs(specgram), torch.angle(specgram)
         mel_specgram = self.mel_scale(mag)  # dimension: (…, n_mels, time)
         log_mel_specgram = torch.log1p(mel_specgram)
+        if self.drop_last_column:
+            log_mel_specgram = log_mel_specgram[:, :, : log_mel_specgram.shape[2] - 1]
+            phase = phase[:, :, : phase.shape[2] - 1]
+
         return log_mel_specgram, phase
 
     def backward(
@@ -181,7 +187,11 @@ class Log1pMelSpecPghi(nn.Module):
 
     def get_n_frames(self, n_samples: int):
         # see https://pytorch.org/docs/stable/generated/torch.stft.html
+        ret = 0
         if self.center:
-            return 1 + n_samples // self.hop_length
+            ret = 1 + n_samples // self.hop_length
         else:
-            1 + (n_samples - self.n_fft) // self.hop_length
+            ret = 1 + (n_samples - self.n_fft) // self.hop_length
+        if self.drop_last_column:
+            ret -= 1
+        return ret

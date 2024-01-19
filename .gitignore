@@ -4,7 +4,7 @@
 data
 
 # Directory to store checkpoints
-models
+/models
 
 # tensorboard
 **/runs
@@ -23,3 +23,4 @@ notebooks/images
 # python stuff
 *.pyc
 .venv*
+__pycache__
