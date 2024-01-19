@@ -13,9 +13,9 @@ def generate_data(model: torch.nn.Module,
     
     with torch.no_grad():
         
-        device = model.device
+        device = model.encoder[0].weight.device
         n_mels = transform.n_mels
-        n_frames = transform.get_n_frames()
+        n_frames = transform.get_n_frames(65536)
         valid_norm = find_normalizer(valid_loader, "valid", transform).to(device)
 
 

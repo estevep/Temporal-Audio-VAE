@@ -5,6 +5,7 @@ from .transforms import Log1pMelSpecPghi
 from .helpers import beta_warmup, find_normalizer
 from .generate_rand import generate_rand
 from .generate_data import generate_data
+from .generate_explore import generate_explore
 import torch
 import logging
 import torchvision
@@ -23,6 +24,7 @@ def train(
     epoch_end: int = None,
     evaluate_every_nth_epoch: int = None,
     generate_every_nth_epoch: int = None,
+    n_sounds_per_dimension: int = None
 ):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info("device: %s", device)
@@ -202,25 +204,18 @@ def train(
             )
             
             logger.info("exploring latent space")
-            with torch.no_grad():
-                n_sounds_per_dimension = 5
-                z = torch.zeros(n_sounds_per_dimension * n_latent, n_latent).to(device)
-                for i in range(n_latent):
-                    a = i * n_sounds_per_dimension
-                    b = (i + 1) * n_sounds_per_dimension
-                    z[a:b, i] = torch.linspace(-2, +2, n_sounds_per_dimension)
-                mag_tilde = model.decode(z)
-                grid = torchvision.utils.make_grid(
-                    mag_tilde.reshape(-1, 1, n_mels, n_frames), n_sounds_per_dimension
-                )
-                WRITER.add_image("gen/explo_latent/melspec", grid, epoch)
-                waveform_tilde = transform.backward(mag_tilde)
-                waveform_tilde /= torch.max(abs(waveform_tilde))
-
-                WRITER.add_audio(
-                    "gen/explo_latent/griffinlim",
-                    waveform_tilde_griffinlim.reshape(-1),
-                    epoch,
-                    sample_rate=LoopDataset.FS,
-                )
+           
+            waveform_tilde_griffinlim, grid = generate_explore(model=model,
+                                                              transform=transform,
+                                                              n_sounds_per_dimension=3,
+                                                              n_latent=n_latent
+                                                              )
+            
+            WRITER.add_image("gen/explo_latent/melspec", grid, epoch)
+            WRITER.add_audio(
+                "gen/explo_latent/griffinlim",
+                waveform_tilde_griffinlim.reshape(-1),
+                epoch,
+                sample_rate=LoopDataset.FS,
+            )
     ### END TRAINING LOOP

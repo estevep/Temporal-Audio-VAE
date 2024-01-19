@@ -14,9 +14,9 @@ def generate_rand(model: torch.nn.Module,
     
     with torch.no_grad():
         
-        device = model.device
+        device = model.encoder[0].weight.device
         n_mels = transform.n_mels
-        n_frames = transform.get_n_frames()
+        n_frames = transform.get_n_frames(65536)
 
 
         z = torch.randn(n_sounds_generated_from_random, n_latent).to(device)
