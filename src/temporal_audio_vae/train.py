@@ -111,6 +111,7 @@ def train(
             beta = beta_warmup(epoch, warmup_beta_interval, warmup_epoch_interval)
 
         logger.info(f"Training epoch = {epoch}, beta={beta:.2f}")
+        epoch += 1
         full_loss = 0
         recons_loss = 0
         kl_div = 0
