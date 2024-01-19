@@ -218,4 +218,6 @@ def train(
                 epoch,
                 sample_rate=LoopDataset.FS,
             )
+        
+        epoch += 1
     ### END TRAINING LOOP
