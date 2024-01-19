@@ -3,6 +3,7 @@ from .models import MelSpecVAE, construct_encoder_decoder
 from .transforms import Log1pMelSpecPghi
 from .helpers import find_normalizer
 from .generate_rand import generate_rand
+from .generate_data import generate_data
 import torch
 import logging
 import torchvision
@@ -143,33 +144,20 @@ def train(dataset_path: str):
 
         if epoch % generate_every_nth_epoch == 0 or epoch == n_epochs - 1:
             logger.info("generating from dataset")
-            with torch.no_grad():
-                waveform = next(iter(valid_loader)).to(device)
-                mag, phase = transform.forward(
-                    waveform[:n_sounds_generated_from_dataset]
-                )
-                mag = train_norm(mag)
-
-                mag_tilde, _ = model(mag)
-
-                waveform_tilde_copyphase = transform.backward(mag_tilde, phase)
-                waveform_tilde_griffinlim = transform.backward(mag_tilde)
-
-                grid = torchvision.utils.make_grid(
-                    mag_tilde.reshape(-1, 1, n_mels, n_frames), 1
-                )
-                WRITER.add_image("gen/dataset/melspec", grid, epoch)
-
-                waveform_tilde_copyphase /= torch.max(abs(waveform_tilde_copyphase))
-                waveform_tilde_griffinlim /= torch.max(abs(waveform_tilde_griffinlim))
-
-                WRITER.add_audio(
-                    "gen/dataset/copyphase",
-                    waveform_tilde_copyphase.reshape(-1),
-                    epoch,
-                    sample_rate=LoopDataset.FS,
-                )
-                WRITER.add_audio(
+            
+            waveform_tilde_copyphase, waveform_tilde_griffinlim, grid = generate_data(model=model, 
+                                                                                        transform=transform,
+                                                                                        valid_loader=valid_loader,
+                                                                                        n_sounds_generated_from_dataset=n_sounds_generated_from_dataset)
+            
+            WRITER.add_image("gen/dataset/melspec", grid, epoch)
+            WRITER.add_audio(
+                "gen/dataset/copyphase",
+                waveform_tilde_copyphase.reshape(-1),
+                epoch,
+                sample_rate=LoopDataset.FS,
+            )
+            WRITER.add_audio(
                     "gen/dataset/griffinlim",
                     waveform_tilde_griffinlim.reshape(-1),
                     epoch,
@@ -179,6 +167,14 @@ def train(dataset_path: str):
             logger.info("generating random from latent space")
 
             waveform_tilde_griffinlim, grid = generate_rand(model, transform, n_sounds_generated_from_random, n_latent)
+
+            WRITER.add_image("gen/rand/melspec", grid, epoch)
+            WRITER.add_audio(
+                "gen/rand/copyphase",
+                waveform_tilde_copyphase.reshape(-1),
+                epoch,
+                sample_rate=LoopDataset.FS,
+            )
             
             logger.info("exploring latent space")
             with torch.no_grad():
