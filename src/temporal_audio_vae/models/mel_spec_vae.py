@@ -48,8 +48,9 @@ class MelSpecVAE(AE):
     def latent(self, z_params):
         normal = distrib.Normal(loc=0.0, scale=1.0)
         mu, sigma = z_params
+        device = mu.device
         kl_div = torch.sum(1 + torch.log(sigma**2) - mu**2 - 2 * (sigma**2)) / 2
-        z = mu + sigma * normal.sample(sigma.shape)
+        z = mu + sigma * normal.sample(sigma.shape).to(device)
 
         return z, kl_div
     
