@@ -2,6 +2,7 @@ from .datasets import LoopDataset
 from .models import MelSpecVAE, construct_encoder_decoder
 from .transforms import Log1pMelSpecPghi
 from .helpers import find_normalizer
+from .generate_rand import generate_rand
 import torch
 import logging
 import torchvision
@@ -176,24 +177,9 @@ def train(dataset_path: str):
                 )
 
             logger.info("generating random from latent space")
-            with torch.no_grad():
-                z = torch.randn(n_sounds_generated_from_random, n_latent).to(device)
-                mag_tilde = model.decode(z)
 
-                grid = torchvision.utils.make_grid(
-                    mag_tilde.reshape(-1, 1, n_mels, n_frames), 1
-                )
-                WRITER.add_image("gen/rand_latent/melspec", grid, epoch)
-
-                waveform_tilde = transform.backward(mag_tilde)
-                waveform_tilde /= torch.max(abs(waveform_tilde))
-
-                WRITER.add_audio(
-                    "gen/rand_latent/griffinlim",
-                    waveform_tilde_griffinlim.reshape(-1),
-                    epoch,
-                    sample_rate=LoopDataset.FS,
-                )
+            waveform_tilde_griffinlim, grid = generate_rand(model, transform, n_sounds_generated_from_random, n_latent)
+            
             logger.info("exploring latent space")
             with torch.no_grad():
                 n_sounds_per_dimension = 5
