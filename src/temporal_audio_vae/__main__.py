@@ -22,11 +22,11 @@ def do_train(args):
         use_beta_warmup=args.warmup is not None,
         warmup_epoch_interval=(args.warmup[0], args.warmup[1]) if args.warmup else None,
         warmup_beta_interval=(args.warmup[2], args.warmup[3]) if args.warmup else None,
-        epoch_start=1,
         epoch_end=args.endepoch,
         evaluate_every=args.validepoch,
         generate_every=args.genepoch,
         load_state=args.checkpoint,
+        save_every=args.saveepoch,
     )
 
 
@@ -54,7 +54,10 @@ train_parser.add_argument(
     "--genepoch", type=int, help="generate every nth epoch", metavar="N"
 )
 train_parser.add_argument(
-    "--validepoch", type=int, help="validate every nth epoch", metavar="N"
+    "--validepoch", type=int, help="validate every nth epoch", metavar="N", default=10
+)
+train_parser.add_argument(
+    "--saveepoch", type=int, help="save every nth epoch", metavar="N", default=10
 )
 
 args = parser.parse_args()

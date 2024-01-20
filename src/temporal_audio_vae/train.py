@@ -56,6 +56,7 @@ def train(
     )
 
     n_frames = transform.get_n_frames(LoopDataset.LEN_SAMPLES)
+    epoch = 1
 
     # normalize dataset
     train_norm = find_normalizer(train_loader, "train", transform).to(device)
