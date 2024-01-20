@@ -24,8 +24,9 @@ def do_train(args):
         warmup_beta_interval=(args.warmup[2], args.warmup[3]) if args.warmup else None,
         epoch_start=1,
         epoch_end=args.endepoch,
-        evaluate_every_nth_epoch=args.validepoch,
-        generate_every_nth_epoch=args.genepoch,
+        evaluate_every=args.validepoch,
+        generate_every=args.genepoch,
+        load_state=args.checkpoint,
     )
 
 
@@ -35,6 +36,9 @@ subparsers = parser.add_subparsers(required=True)
 
 train_parser = subparsers.add_parser("train")
 train_parser.set_defaults(func=do_train)
+train_parser.add_argument(
+    "--checkpoint", type=Path, help="continue from checkpoint", metavar="PATH"
+)
 train_parser.add_argument("--beta", type=float, help="use fixed beta value")
 train_parser.add_argument(
     "--warmup",
@@ -57,10 +61,6 @@ args = parser.parse_args()
 
 if args.beta and args.warmup:
     logger.critical("Cannot use fixed beta and beta warmup at the same time")
-    exit(1)
-
-if args.beta is None and args.warmup is None:
-    logger.critical("Must at least use fixed beta or beta warmup")
     exit(1)
 
 if not (args.dbpath / "data.mdb").exists():

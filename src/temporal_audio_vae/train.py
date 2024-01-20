@@ -1,14 +1,16 @@
+from pathlib import Path
 from typing import Tuple
 from .datasets import LoopDataset
 from .models import MelSpecVAE, construct_encoder_decoder
 from .transforms import Log1pMelSpecPghi
-from .helpers import beta_warmup, find_normalizer
+from .helpers import beta_warmup, find_normalizer, save
 from .generate_rand import generate_rand
 from .generate_data import generate_data
 from .generate_explore import generate_explore
 import torch
 import logging
 import torchvision
+from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 
 logger = logging.getLogger(__name__)
@@ -20,11 +22,12 @@ def train(
     use_beta_warmup: bool = False,
     warmup_epoch_interval: Tuple[float, float] = None,
     warmup_beta_interval: Tuple[float, float] = None,
-    epoch_start: int = 1,
     epoch_end: int = None,
-    evaluate_every_nth_epoch: int = None,
-    generate_every_nth_epoch: int = None,
+    evaluate_every: int = None,
+    generate_every: int = None,
     n_sounds_per_dimension: int = None,
+    save_every: int = 10,
+    load_state: Path = None,
 ):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info("Using device: %s", device)
@@ -65,6 +68,19 @@ def train(
     recons_criterion = torch.nn.MSELoss(reduction="sum")
     transform = transform.to(device)
 
+    #### LOADING
+    if load_state is not None:
+        logger.info(f"Loading state from {load_state}")
+
+        data = torch.load(load_state)
+        epoch = data["epoch"]
+        model.load_state_dict(data["model_state_dict"])
+        optimizer.load_state_dict(data["optimizer_state_dict"])
+        beta = data["beta"]
+        use_beta_warmup = data["use_beta_warmup"]
+        warmup_beta_interval = data["warmup_beta_interval"]
+        warmup_epoch_interval = data["warmup_epoch_interval"]
+
     WRITER = SummaryWriter(comment="train")
 
     # add refs to tensorboard
@@ -90,9 +106,9 @@ def train(
         )
     else:
         logger.info(f"Using fixed {beta=:.2f}")
-    logger.info(f"{epoch_start=} {epoch_end=}")
-    logger.info(f"{evaluate_every_nth_epoch=}")
-    logger.info(f"{generate_every_nth_epoch=}")
+    logger.info(f"{epoch=} {epoch_end=}")
+    logger.info(f"{evaluate_every=}")
+    logger.info(f"{generate_every=}")
     logger.info(f"{n_latent=}")
     logger.info(f"{n_hidden=}")
     logger.info(f"{n_mels=}")
@@ -103,7 +119,6 @@ def train(
     logger.info(f"{n_sounds_generated_from_random=}")
 
     ### TRAINING LOOP
-    epoch = epoch_start
     while epoch_end is None or epoch < epoch_end:
         model.train()
 
@@ -137,7 +152,7 @@ def train(
         WRITER.add_scalar("loss/train/kl_div", kl_div, epoch)
 
         ## EVALUATION
-        if evaluate_every_nth_epoch and epoch % evaluate_every_nth_epoch == 0:
+        if evaluate_every and epoch % evaluate_every == 0:
             model.eval()
             logger.info("Evaluating model")
 
@@ -165,7 +180,25 @@ def train(
             WRITER.add_scalar("loss/valid/reconstruction", recons_loss, epoch)
             WRITER.add_scalar("loss/valid/kl_div", kl_div, epoch)
 
-        if generate_every_nth_epoch and epoch % generate_every_nth_epoch == 0:
+        #### SAVING
+        if save_every and epoch % save_every == 0:
+            path = Path(".") / f"train_{datetime.now().isoformat('_')}_{epoch}.pth"
+            logger.info(f"Saving state to {path}")
+            torch.save(
+                {
+                    "epoch": epoch,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "beta": beta,
+                    "use_beta_warmup": use_beta_warmup,
+                    "warmup_beta_interval": warmup_beta_interval,
+                    "warmup_epoch_interval": warmup_epoch_interval,
+                },
+                path,
+            )
+
+        #### GENERATION
+        if generate_every and epoch % generate_every == 0:
             logger.info("generating from dataset")
             waveform_tilde_copyphase, waveform_tilde_griffinlim, grid = generate_data(
                 model=model,
