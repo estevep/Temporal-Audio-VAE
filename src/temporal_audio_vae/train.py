@@ -89,7 +89,11 @@ def train(
         mag, phase = transform.forward(waveform[:n_sounds_generated_from_dataset])
         mag = train_norm(mag)
 
-        grid = torchvision.utils.make_grid(mag.reshape(-1, 1, n_mels, n_frames), 1)
+        grid = torchvision.utils.make_grid(
+            mag.reshape(-1, 1, n_mels, n_frames),
+            n_sounds_generated_from_dataset,
+            pad_value=1,
+        )
         WRITER.add_image("ref/dataset/melspec", grid)
 
         WRITER.add_audio(
@@ -222,7 +226,7 @@ def train(
             )
 
             logger.info("generating random from latent space")
-            
+
             waveform_tilde_griffinlim, grid = generate_rand(
                 model=model,
                 transform=transform,
