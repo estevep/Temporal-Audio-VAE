@@ -189,6 +189,7 @@ def train(
             )
 
             logger.info("generating random from latent space")
+            
             waveform_tilde_griffinlim, grid = generate_rand(
                 model=model,
                 transform=transform,
@@ -198,8 +199,8 @@ def train(
 
             WRITER.add_image("gen/rand/melspec", grid, epoch)
             WRITER.add_audio(
-                "gen/rand/copyphase",
-                waveform_tilde_copyphase.reshape(-1),
+                "gen/rand/griffinlim",
+                waveform_tilde_griffinlim.reshape(-1),
                 epoch,
                 sample_rate=LoopDataset.FS,
             )
