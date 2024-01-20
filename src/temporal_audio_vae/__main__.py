@@ -24,8 +24,8 @@ def do_train(args):
         warmup_beta_interval=(args.warmup[2], args.warmup[3]) if args.warmup else None,
         epoch_start=1,
         epoch_end=args.endepoch,
-        evaluate_every_nth_epoch=args.genepoch,
-        generate_every_nth_epoch=args.validepoch,
+        evaluate_every_nth_epoch=args.validepoch,
+        generate_every_nth_epoch=args.genepoch,
     )
 
 
