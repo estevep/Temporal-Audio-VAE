@@ -24,10 +24,10 @@ def train(
     epoch_end: int = None,
     evaluate_every_nth_epoch: int = None,
     generate_every_nth_epoch: int = None,
-    n_sounds_per_dimension: int = None
+    n_sounds_per_dimension: int = None,
 ):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    logger.info("device: %s", device)
+    logger.info("Using device: %s", device)
 
     # load dataset
     dataset = LoopDataset(dataset_path)
@@ -166,13 +166,14 @@ def train(
             WRITER.add_scalar("loss/valid/kl_div", kl_div, epoch)
 
         if generate_every_nth_epoch and epoch % generate_every_nth_epoch == 0:
-            
             logger.info("generating from dataset")
-            waveform_tilde_copyphase, waveform_tilde_griffinlim, grid = generate_data(model=model, 
-                                                                                        transform=transform,
-                                                                                        valid_loader=valid_loader,
-                                                                                        n_sounds_generated_from_dataset=n_sounds_generated_from_dataset)
-            
+            waveform_tilde_copyphase, waveform_tilde_griffinlim, grid = generate_data(
+                model=model,
+                transform=transform,
+                valid_loader=valid_loader,
+                n_sounds_generated_from_dataset=n_sounds_generated_from_dataset,
+            )
+
             WRITER.add_image("gen/dataset/melspec", grid, epoch)
             WRITER.add_audio(
                 "gen/dataset/copyphase",
@@ -181,18 +182,18 @@ def train(
                 sample_rate=LoopDataset.FS,
             )
             WRITER.add_audio(
-                    "gen/dataset/griffinlim",
-                    waveform_tilde_griffinlim.reshape(-1),
-                    epoch,
-                    sample_rate=LoopDataset.FS,
-                )
+                "gen/dataset/griffinlim",
+                waveform_tilde_griffinlim.reshape(-1),
+                epoch,
+                sample_rate=LoopDataset.FS,
+            )
 
-            
             logger.info("generating random from latent space")
-            waveform_tilde_griffinlim, grid = generate_rand(model=model, 
-                                                            transform=transform, 
-                                                            n_sounds_generated_from_random=n_sounds_generated_from_random, 
-                                                            n_latent=n_latent
+            waveform_tilde_griffinlim, grid = generate_rand(
+                model=model,
+                transform=transform,
+                n_sounds_generated_from_random=n_sounds_generated_from_random,
+                n_latent=n_latent,
             )
 
             WRITER.add_image("gen/rand/melspec", grid, epoch)
@@ -202,15 +203,16 @@ def train(
                 epoch,
                 sample_rate=LoopDataset.FS,
             )
-            
+
             logger.info("exploring latent space")
-           
-            waveform_tilde_griffinlim, grid = generate_explore(model=model,
-                                                              transform=transform,
-                                                              n_sounds_per_dimension=3,
-                                                              n_latent=n_latent
-                                                              )
-            
+
+            waveform_tilde_griffinlim, grid = generate_explore(
+                model=model,
+                transform=transform,
+                n_sounds_per_dimension=3,
+                n_latent=n_latent,
+            )
+
             WRITER.add_image("gen/explo_latent/melspec", grid, epoch)
             WRITER.add_audio(
                 "gen/explo_latent/griffinlim",
@@ -218,6 +220,6 @@ def train(
                 epoch,
                 sample_rate=LoopDataset.FS,
             )
-        
+
         epoch += 1
     ### END TRAINING LOOP
