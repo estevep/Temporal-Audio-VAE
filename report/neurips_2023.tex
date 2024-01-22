@@ -8,7 +8,7 @@
 
 % ready for submission
 \usepackage[nonatbib, final]{neurips_2020}
-
+\usepackage{subcaption}
 
 \usepackage[utf8]{inputenc}
 \usepackage{hyperref}
@@ -198,7 +198,15 @@ we must use a maximum likelihood estimation to approximate the likelihood densit
 % Encodeur modélise posteriori et décoder log vraisemblance
 
 
-To solve this problem Kingma and Welling \cite{kingmaAutoEncodingVariationalBayes2022} have introduced Variational autoencoders (VAE). The VAE model introduces a recognition model which will approximate the true posterior density. This defines an encoder $q_\phi(\textbf{z} | \textbf{x})$ : for a given datapoint $\textbf{x}$, $q_\phi$ produces variables from which $\textbf{x}$ could have been generated. Likewise, $p_\theta(\textbf{x}|\textbf{z})$ is a probabilistic decoder : for a given latent variable $\textbf{z}$, it produces a distribution of possibly corresponding variables $\textbf{x}$.
+To solve this problem Kingma and Welling \cite{kingmaAutoEncodingVariationalBayes2022} have introduced Variational autoencoders (VAE). The VAE model introduces a recognition model which will approximate the true posterior density. This defines an encoder $q_\phi(\textbf{z} | \textbf{x})$ : for a given datapoint $\textbf{x}$, $q_\phi$ produces variables from which $\textbf{x}$ could have been generated. 
+
+The parameter $\phi$ is supposed to minimize its Kullback-Leibler (KL) divergence with the actual posterior distribution $p(\textbf{z}|\textbf{x})$ through optimization :
+\begin{equation}
+    \phi^* = \text{argmin}_{\phi} \mathcal{D}_{\text{KL}}[q_\phi(\textbf{z}|\textbf{x}||p(\textbf{z}||\textbf{x}))].
+\end{equation}
+Likewise, $p_\theta(\textbf{x}|\textbf{z})$ is a probabilistic decoder : for a given latent variable $\textbf{z}$, it produces a distribution of possibly corresponding variables $\textbf{x}$. We will thus jointly optimize $\phi$ (the recognition model parameter) and $\theta$ (the generative model parameter). It can be showed (see anexes) that 
+
+
 
 using the following loss function 
 
@@ -338,7 +346,35 @@ Tests with $\beta=0.5$, $n_{latent} \in \{2, 4, 8\}$
 Going back to our model, we train it on a pruned dataset comprised of audio segments of 1.5 seconds, based on the Freesound Loop Dataset\cite{ramires2020}. All of the audio segments are sampled at 44100 Hz. The audio segments are varied in genres with a slight majority of techno loops.
 We started by training the model with $\beta$ fixed to 0, in order to determine the optimal reconstruction epoch. Then, we retrained the model, this time using the beta-warmup procedure described earlier, in order to obtain separation of latent dimensions.
 
+\begin{figure}%
+\centering
+\begin{subfigure}[b]{0.2\textwidth}
+\centering
+\includegraphics[width=\textwidth]{examples/original.wav.png}
+\caption{Original}
+\end{subfigure} \hfill
 
+\begin{subfigure}[b]{0.2\textwidth}
+\centering
+\includegraphics[width=\textwidth]{examples/temporal_audio_vae.wav.png}
+\caption{Ours}
+\end{subfigure} \hfill
+
+
+\begin{subfigure}[b]{0.2\textwidth}
+\centering
+\includegraphics[width=\textwidth]{examples/rave_vae.wav.png}
+\caption{Rave (}
+\end{subfigure} \hfill
+
+\begin{subfigure}[b]{0.2\textwidth}
+\centering
+\includegraphics[width=\textwidth]{examples/rave.wav.png}
+\caption{After}
+\end{subfigure}
+
+\caption[Hello]{Hello, this a minimal working example}
+\end{figure}
 
 % Unfortunately, this model and training scheme produces poor results: the reconstruction we obtain is far from the expected ground truth, and the generated sounds, if recognizable, are quite metallic and distorted in character.
 
