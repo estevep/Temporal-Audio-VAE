@@ -7,11 +7,20 @@
 
 
 % ready for submission
-\usepackage{neurips_2023}
+\usepackage[nonatbib, final]{neurips_2020}
+
+
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage[final]{neurips_2020}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[Ink]{svg}
 
 
 % to compile a preprint version, e.g., for submission to arXiv, add add the
-% [preprint] option:
+% [preprint] option :
 %     \usepackage[preprint]{neurips_2023}
 
 
@@ -33,6 +42,13 @@
 \usepackage{microtype}      % microtypography
 \usepackage{xcolor}         % colors
 
+
+
+
+
+
+
+
 \usepackage{verbatim}
 \usepackage{stmaryrd}
 \usepackage{tikz}
@@ -40,9 +56,12 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{interval}
+\usepackage{bm}
 
 
-\title{Exploring the latent space of a temporal VAE for audio loops generation}
+\title{Projet ATIAM 2022-2023 : Exploring the latent space of a temporal VAE for audio loops generation}
+\author{Étienne André, Paul Estève, Antoine Souchaud \& Enguérand Tamagna}
+%\title{Exploring the latent space of a temporal VAE for audio loops generation}
 
 
 % The \author macro works with any number of authors. There are two commands
@@ -55,8 +74,26 @@
 
 
 %\author{AAAAA}
+\usepackage[
+backend=biber,
+style=numeric,
+sorting=ynt
+]{biblatex}
 
-\date{}
+\addbibresource{biblio.bib}
+% \AtEveryBibitem{%
+% \ifentrytype{book,collection,incollection,misc}{
+%     \clearfield{url}%
+%     \clearfield{urldate}%
+%     \clearfield{review}%
+%     \clearfield{series}%%
+%     \clearfield{primaryclass}
+% }{}
+% }
+% Exclure le champ primaryclass
+\AtEveryBibitem{\clearfield{primaryclass}}
+% }
+\date{\today}
 
 \begin{document}
 
@@ -67,143 +104,128 @@
 
 
 \begin{abstract}
-    Generating diverse and high-quality audio samples is now possible thanks to deep generative models. As is the case for Variational Auto-Encoders [5], these models often rely on the generation of a low-dimensional latent space in which the characteristic information of the data is encoded. Decoding this space provides a trainable analysis-synthesis framework. We can then construct data, such as an audio signal, from a latent representation. The reconstruction will then have the same properties as the training data. So, this opens new horizons for artistic creation and for musical composition in particular. However, it is very tricky to represent the latent space to ourself and so to control it intuitively, especially since the latent variables are created without supervision. Our objective is then, based on the RAVE approach [1], to study a multimodal method in order to intuitively influence the latent space of the temporal Variational Auto-Encoder, pre-trained on electronic music loops.
-    %, using a hand motion dataset. ??
-
+    Synthesis of complex and high-quality audio has been a thoroughly explored research field, usually using signal processing based techniques. In recent developments, machine learning based techniques attain a high quality and diverse generation, but at the cost of computational complexity and loss of control over the timbral and temporal characteristics of the generated sounds. Approaches such as Variational Auto-Encoders \cite{kingmaAutoEncodingVariationalBayes2022} rely on the generation of a low-dimensional latent space in which the characteristic information of the data is encoded. Decoding this space provides a trainable analysis-synthesis framework. More recently, the Realtime Audio Variational autoEncoder (RAVE) paper\cite{caillonRAVEVariationalAutoencoder2021} shows significant improvements over computational complexity, allowing high-quality and realtime on CPUs. However, being based on waveforms, it presents challenges in the structure and interpretability of the latent dimensions. In this paper, we propose a way to improve on these issues by introducing a mel-spectrogram representation, and discuss the impact on the latent space structure and reconstruction quality.
 \end{abstract}
+
+% Exploring the latent space of a temporal VAE for audio loops generation
+
+% abstract 
+
+% 3 - Proposed methode
+
+% 3.1 Audio representation (mel spec + griffin lim / pghi)
+
+% 3.2 Model
+
+
+% 4 - experiments on MNIST
+
+
+% 5 - Experiments
+
+% - dataset
+% - baseline = pretrained RAVE
+% - parameters you tried (for instance maybe you change the number of latent)
+% - metrics (for reconstruction quality for instance) ?
+
+
+% 7 - Conclusion
+
 
 % \begin{comment}
 \section{Introduction}
 
-Neural audio synthesis is nowadays an active research domain that opens new doors fo creativity, composition and sound design. Generating various high-quality audio samples is now possible thanks to generative models such as RAVE [1], which are capable of create new data which preserve the properties of the training data. To do so, deep generative approaches such as Variational Auto-Encoders [5] crate an low-dimensional latent space on which the data are encoded into latent variables. Decoding these then allows us to generate new data. However, the latent space is a theoretical consideration that is very complex to represent since the dimensions involved are still too big to understand. We therefore cannot exert an active and intuitive control over the latent space, nor evaluate the quality of such a space. Our goal will be then to explore and sample the latent space of a pre-trained VAE-based audio synthesis model in order to assess its quality and coverage. In the first place, we will look at the state-of-the-art data generation method. We will then train it on MNSIT in order to experiment and discuss qualitative results. Finally, we will dig into the Temporal Spectral VAE properly said.
+There have been significant advances in deep audio generative models in recent years, enabling novel and artistically interesting ways to generate diverse and high-quality sounds. By exposing a deep neural network to a set of examples, the network is able to model the underlying data distribution and generate coherent and rich new sounds.
+However, the high dimensionality of audio signals, due to the high rates at which they are sampled, is challenging to model directly. Early works on autoregressive models such as WaveNet\cite{oord2016wavenet} achieve high-quality waveform synthesis, but at the cost of high computational complexity and slow inference. Alternatively, other approaches that leverage a time-frequency representation, such as GANSynth\cite{engelGANSynthAdversarialNeural2019}, are able to reduce the computational cost but rely on very large architectures with a high number of parameters.
+
+These approaches usually rely on latent-based generative models such as Variational Auto-Encoders (VAE)\cite{kingmaAutoEncodingVariationalBayes2022} and Generative Adversarial Networks (GAN)\cite{kumarMelGANGenerativeAdversarial2019}, which use a probabilistic framework to model the underlying probability distribution. To do so, they introduce a lower-dimension so-called latent space, which captures the high-level audio features of the dataset. The latent variables in this parametric space are assumed to be responsible for most of the input variations, and can then be used to condition the generation.
+
+More recently, Realtime Audio Variational autoEncoder (RAVE) \cite{caillonRAVEVariationalAutoencoder2021} combines these approaches to achieve both high-quality synthesis and low computational complexity, with a very reduced latent space dimensionality, enabling high-quality and diverse generation even in resource-constrained systems and realtime applications. However, the latent space, although small, lacks interpretability. Indeed, two perceptually similar sounds may have completely different waveforms due to subtle phase variations: thus, similar audio features may end up being encoded very differently in the latent space, making it difficult to explore in creative endeavors.
+
+In this paper, we address this issue by introducing a time-frequency based representation in the learning phase of RAVE. To do so, we implement a temporal spectral VAE using mel-spectrograms, eliminating phase-related issues in the latent space. We start by preseting our method in detail, and discuss the influence of the model's hyperparameters by presenting experiments on the MNIST dataset\cite{lecun2010mnist}. We then assess the reconstruction quality and latent space interpretability of our model trained on a pruned Freesound Loop dataset\cite{ramires2020}, and compare it with a pre-trained RAVE model on the same dataset. We finally discuss our results and explain the difficulties encountered.
+
+Full source code, audio samples and a pre-trained checkpoint are availiable on the accompanying repository\footnote{\url{https://github.com/estevep/Temporal-Audio-VAE}}.
+
+% SARAH
+% In recent years, significant advances in deep audio generative models. 
+% The goal is to model the underlying data distribution by learning from a set of examples. 
+% Directly modeling the raw waveform is challenging as audio data is very high dimensional
+% Early works on Autoregressive (AR) models such as WaveNet successfully achieved high-quality raw waveform synthesis, but at the cost of expensive computation and very slow inference. Alternatively, other approaches leverage a time-frequency representation of the signals such as GANSynth, reducing the computational cost but rely on very large architectures requiring lots of parameters to train. 
+% These approaches mostly rely on latent-based generative models such as VAE and GAN.
+% To model the underlying distribution, they introduce latent variables assumed to be responsible for most of the input variations in a lower-dimensional space called latent space. This parametric space can capture high-level audio features that can then be used to condition the generation. 
+% Recently RAVE was introduced, it combines VAE+GAN and achieve fast and high-quality synthesis + embeds the possibility to work with reduced latent spaces (thanks to the post-training analysis)
+% (128 latent alors que nous on en a 8, grâce à la post training Analysis)
+
+
+% However the latent dimensions are usually not directly interpretable. + two perceptually similar sounds may have completely different waveforms due to subtle phase variations. Hence similar audio features could be encoded very differently in the RAVE latent space precluding its exploration for creative endeavors.
+% Hence, we want to analyze the benefit of a time-frequency for the representation learning phase of RAVE and its impact on the latent representation. implement a Temporal Spectral VAE and compare with a pre-trained RAVE
+
+%ORIGINAL
+% Neural audio synthesis is nowadays an active research domain that opens new doors for creativity, composition and sound design. Generating various high-quality audio samples is now possible thanks to generative models such as RAVE \cite{caillonRAVEVariationalAutoencoder2021}, which are capable of create new data which preserve the properties of the training data. To do so, deep generative approaches such as Variational Auto-Encoders \cite{kingmaAutoEncodingVariationalBayes2022} crate an low-dimensional latent space on which the data are encoded into latent variables. Decoding these then allows us to generate new data. However, the latent space is a theoretical consideration that is very complex to represent since the dimensions involved are still too big to understand. We therefore cannot exert an active and intuitive control over the latent space, nor evaluate the quality of such a space. Our goal will be then to explore and sample the latent space of a pre-trained VAE-based audio synthesis model in order to assess its quality and coverage. In the first place, we will look at the state-of-the-art data generation method. We will then train it on MNIST in order to experiment and discuss qualitative results. Finally, we will dig into the Temporal Spectral VAE properly said.
 %Latent space exploration ??
 
-\section{State-of-the-art method}
+
+
+% {\huge Plan}
+
+\section{State-of-the-art}
 %\label{gen_inst}
+% 2 - State-of-the-art
 
-In this section, we shall emphasize the basic strategy we used to code our VAE. We will explain theoretically the VAE model and its loss, based on Kingma and Welling's article [5]. For this approach, we assume that the dataset is composed of $N$ i.i.d samples of a variable $x$ :
+% STRUCTURE EN ENTONNOIR ! Generative models
 
-\begin{center}
-    \[ x = \{x^{(i)}\}_{i=1,...,N}\]
-\end{center}
-We also assume that the data are generated by a random process, which involves a latent variable $z$. Let's assume that $z^{(i)}$ is generated by a prior distribution and $x^{(i)}$ by a conditional distribution as following :
+% 2.1. Generative models
+\subsection{Generative models}
 
-\begin{center}
-    \begin{align*}
-        z^{(i)} &= p_{\theta^{*}}(z) \\
-        x^{(i)} &= p_{\theta^{*}}(x | z),
-    \end{align*}
-\end{center}
-with $p_{\theta^{*}}(z)$ and $p_{\theta^{*}}(x | z)$ belonging to a family of distribution $\{  ( \,p_{\theta^{*}}(z), \, p_{\theta^{*}}(x | z)\,) \,|\, \theta \in \Theta \}$. However, it is important to note that the parameter $\theta^*$ and all the latent variables are unknown ! The main issue will be to approximate them. The true posterior density is given by :
-\begin{center}
-    \[p_\theta(z | x).\]
-\end{center}
-Let us remember that
-\begin{center}
-    \[p_\theta(x|z) = \frac{p_\theta(x \cap z)}{p_\theta (z)}.\]
-\end{center}
+% complete model is defined by the joint distribution p(x,z) = p(x|z)p(z) and we obtain p(x) by marginalizing z from the joint probability.
+% however intractable –> maximum likelihood estimation → approximate the likelihood density distribution using neural networks
 
-It follows that 
+The purpose of generative models is to create a model for the underlying distribution $p(\textbf{x})$ of a given dataset $\textbf{x} \in \mathbb{R}^{d_x}$. We assume that the data are generated by a random process, which involves a latent variable $\textbf{z} \in \mathbb{R}^{d_z}$ that plays a key role in influencing the majority of the variations present in $\textbf{x}$. Thus, we obtain a joint distribution which define the complete model $p(\textbf{x}, \textbf{z}) = p(\textbf{x}|\textbf{z})p(\textbf{z})$ and we obtain $p(\textbf{x})$ by marginalizing $\textbf{z}$ from the joint probability. 
+However, the true posterior density $p(\textbf{z}|\textbf{x})$ is intractable, so
+we must use a maximum likelihood estimation to approximate the likelihood density distribution using neural networks.
 
-\begin{center}
-        \[p_\theta(z)p_\theta(x|z) = p_\theta(x \cap z) = p_\theta(x)p_\theta(z|x),\]
-\end{center}
-and finally
-\begin{center}
-    \[ p_\theta(z|x) = \frac{p_\theta(x|z)p_\theta (z)}{p_\theta (x)}.\]
-\end{center}
-It is important to keep this equality in mind. However, the true posterior density $p_\theta(z|x)$ is intractable. Therefore, we must introduce a recognition model which will approximate this value. This how we define our encoder $q_\phi(z | x)$ : for a given datapoint $x$, $q_\phi$ produces variables from which $x$ could have been generated. Likewise, $p_\theta(x|z)$ is a probabilistic decoder : for a given latent variable $z$, it produces a distribution of possibly corresponding variables $x$. We will thus jointly optimize $\phi$ (the recognition model parameter) and $\theta$ (the generative model parameter). In order to do this, we will sum the log-likelihood over each datapoint : 
-\begin{center}
-    \[\log p_\theta(x^{(1)}, \ldots, x^{(N)}) = \sum_{i=1}^{N} \log p_\theta(x^{(i)}),\]
-    
-\end{center}
 
-which can be rewritten as
 
-\begin{center}
-        \[\log p_\theta(x^{(i)}) = \mathcal{D}_{KL}(q_\phi(z | x^{(i)}) || p_\theta(z | x^{(i)})) + \mathcal{L}(\theta, \phi ; x^{(i)}), \quad \forall i \in \llbracket 1, N \rrbracket.\]
-\end{center}
 
-Since we want a high probability in this distribution of images, we shall maximize $\log p_\theta(x^{(i)})$. However, as we said above, the true posterior $p_\theta(z | x^{(i)})$ is unknown. We will therefore estimate $\log p_\theta(x^{(i)})$ by minimizing $\mathcal{D}_{KL}(q_\phi(z | x^{(i)}) || p_\theta(z | x^{(i)}))$ by $0$. Thus, we have, $\forall i \in \llbracket 1, N \rrbracket$:
 
-\begin{center}
+% 2.2. VAE
+\subsection{VAE}
 
-    \[\log p_\theta(x^{(i)}) \geq \mathcal{L}(\theta, \phi ; x^{(i)}) = \mathbb{E}_{q_\phi(z|x)} [- \log q_\phi(z|x) + \log p_\theta(x,z)],\]
+% ELBO
+% then introduce beta
+% Bien expliquer la partie Elbo (reconstruction) et la partie régularisation
 
-\end{center}
+% Encodeur modélise posteriori et décoder log vraisemblance
 
-which can be rewritten as
+
+To solve this problem Kingma and Welling \cite{kingmaAutoEncodingVariationalBayes2022} have introduced Variational autoencoders (VAE). The VAE model introduces a recognition model which will approximate the true posterior density. This defines an encoder $q_\phi(\textbf{z} | \textbf{x})$ : for a given datapoint $\textbf{x}$, $q_\phi$ produces variables from which $\textbf{x}$ could have been generated. Likewise, $p_\theta(\textbf{x}|\textbf{z})$ is a probabilistic decoder : for a given latent variable $\textbf{z}$, it produces a distribution of possibly corresponding variables $\textbf{x}$.
+
+using the following loss function 
 
 
 \begin{equation}\label{loss1}
-    \mathcal{L}(\theta, \phi ; x^{(i)}) = -\mathcal{D}_{KL}(q_\phi(z | x^{(i)}) || p_\theta(z)) + \mathbb{E}_{q_\phi(z | x^{(i)})} [\log p_\theta(x^{(i)} | z)]
+    \mathcal{L}(\theta, \phi ; \textbf{x}^{(i)}) = -\mathcal{D}_{KL}(q_\phi(\textbf{z} | \textbf{x}^{(i)}) || p_\theta(\textbf{z})) + \mathbb{E}_{q_\phi(\textbf{z} | \textbf{x}^{(i)})} [\log p_\theta(\textbf{x}^{(i)} | \textbf{z})]
 \end{equation}
 
 %on a (\ref{loss1})
 
 This will be our loss function. Note that the two terms correspond to two different losses :
 
-\begin{equation*}
-    \mathbb{E}_{q_\phi(z | x^{(i)})} [\log p_\theta(x^{(i)} | z)] :\ \texttt{reconstruction loss}\\
-    \mathcal{D}_{KL}(q_\phi(z | x^{(i)}) || p_\theta(z)) :\ \texttt{regularization loss}.
-\end{equation*}
+\begin{align*}
+    \mathbb{E}_{q_\phi(\textbf{z} | \textbf{x}^{(i)})} [\log p_\theta(\textbf{x}^{(i)} | \textbf{z})] &:\ \texttt{reconstruction loss} \\
+    \mathcal{D}_{KL}(q_\phi(\textbf{z} | \textbf{x}^{(i)}) || p_\theta(\textbf{z})) &:\ \texttt{regularization loss}.
+\end{align*}
 
-The reconstruction loss increases the likelihood of the data generated given a configuration of the latent, while the regularization loss measures the proximity of the true prior $p_\theta (z)$ compared to the approximated posterior $q_\phi(z|x)$. This one allows the algorithm to optimize the choice of $q$ with respect to the true posterior distribution. 
+The reconstruction loss increases the likelihood of the data generated given a configuration of the latent, while the regularization loss measures the proximity of the true prior $p_\theta (\textbf{z})$ compared to the approximated posterior $q_\phi(\textbf{z}|\textbf{x})$. This one allows the algorithm to optimize the choice of $q$ with respect to the true posterior distribution. 
 
-Note that we sometimes prefer to use an extra parameter $\beta$ in order to adjust the weight of the regularization loss, as explained by Higgins et al [4] :
+Note that we will use an extra parameter $\beta$ in order to adjust the weight of the regularization loss, as explained by Higgins et al. \cite{higginsVVAELEARNINGBASIC2017} :
 
 \begin{center}
     \begin{equation}\label{loss1beta}
-        \mathcal{L}(\theta, \phi ; x^{(i)}) = - \beta \, \mathcal{D}_{KL}(q_\phi(z | x^{(i)}) || p_\theta(z)) + \mathbb{E}_{q_\phi(z | x^{(i)})} [\log p_\theta(x^{(i)} | z)].
+        \mathcal{L}(\theta, \phi ; \textbf{x}^{(i)}) = - \beta \, \mathcal{D}_{KL}(q_\phi(\textbf{z} | \textbf{x}^{(i)}) || p_\theta(\textbf{z})) + \mathbb{E}_{q_\phi(\textbf{z} | \textbf{x}^{(i)})} [\log p_\theta(\textbf{x}^{(i)} | \textbf{z})].
     \end{equation}
 \end{center}
 
-We now want to optimize, thus differentiate, $\mathcal{L}(\theta, \phi; x^{(i)})$ with respect to $\theta$ and $\phi$. However, the differential of this loss in $\phi$ is poorly defined, and we need to reparametrize our problem.
-
-In order to do that, we shall now introduce a little more complex sample generation method. Let us remeber that $z$ follows a conditional distribution $q_\phi (z | x)$. We will then express z as a deterministic variable $z=g_\phi (\epsilon, x)$ where $g_\phi$ is a parametric function of $\phi$ and $\epsilon$ is an auxiliary variable (a noise separately generated, usually Gaussian). 
-
-In the case of our Variatioanal Auto-Encoder, we will assume that the prior $p_\theta (z)$ is a centered isotropic multivariate Gaussian $\mathcal{N}(z;0,I)$. Let the posterior $p_\phi (x | z)$ be a multivariate Gaussian or a Bernoulli. We will then assume that the approximated posterior $q_\phi (z|x)$ is a multivariate Gaussian such that
-
-
-\begin{center}
-    \begin{equation*}
-        \log q_\phi(z|x^{(i)}) = \log \mathcal{N} (z; \mu^{(i)}, \sigma^{2(i)I})  
-    \end{equation*}
-\end{center}
-
-
-where $\mu^{(i)}$ and $\sigma^{(i)}$ are the outputs of our encoder (non linear functions of $x^{(i)}$ and $\phi$). It can be showed that the good reparametrisation of our problem us given by :
-
-\begin{center}
-    \begin{equation*}
-        z^{(i,l)} \sim q_\phi (z|x^{(i)})
-    \end{equation*}
-\end{center}
-with 
-
-\begin{center}
-    \begin{equation*}
-        z^{(i,l)} = g_\phi (x^{(i)}, \epsilon^{(l)}) = \mu^{(i)} + \sigma^{(i)}  \odot\epsilon^{(l)}
-\end{equation*}
-\end{center}
-where 
-\begin{equation*}
-    \epsilon \sim \mathcal{N}(0,I)
-\end{equation*}
-and $\odot$ designates an element-wise product.
-
-Since the prior and the approximated posterior are both Gaussians, it can be showed that the loss in (\ref{loss1}) can be brought back to :
-\begin{equation}\label{loss2}
-    \mathcal{L}(\theta, \phi; x^{(i)}) \approx \frac{1}{2} \sum_{j=1}^{J} (1 \,+\, \log((\sigma_j^{(i)})^2 \,-\, (\mu_j^{(i)})^2 \,-\,(\sigma_j^{(i)})^2)\,\,+\,\,\frac{1}{L}\sum_{l=1}^{L} \log p_\theta(x^{(i)} | z^{(i,l)})
-\end{equation}
-with
-\begin{equation*}
-    z^{(i,l)}=\mu^{(i)} + \sigma^{(i)} \odot \epsilon^{(l)}
-\end{equation*}
-and 
-\begin{equation*}
-    \epsilon^{(l)} \sim \mathcal{N}(0,I).
-\end{equation*}
 
 
 \begin{figure}[h]
@@ -213,10 +235,10 @@ and
         % Noeuds (cercles)
         \node [draw, circle, scale=0.9] (A) {Image};
         \node [draw, circle, below=of A, scale=0.6] (B) {Encoder};
-        \node [draw, circle, below right=of B, xshift=-2cm, yshift=-0.5cm, scale=1] (C) {$\mu$};
-        \node [draw, circle, below left=of B, xshift=2cm, yshift=-0.5cm, scale=1.1] (D) {$\sigma$};
-        \node [draw, circle, below=of B, yshift=-1.5cm, scale=0.8] (E) {$z\,=\,\mu\,+\,\sigma \odot \epsilon$};
-        \node [draw, circle, below left=of C, xshift=0cm, yshift=-1.25cm, scale=1.2] (eps) {$\epsilon$};
+        \node [draw, circle, below right=of B, xshift=-2cm, yshift=-0.5cm, scale=1] (C) {$\bm\mu$};
+        \node [draw, circle, below left=of B, xshift=2cm, yshift=-0.5cm, scale=1.1] (D) {$\bm\sigma$};
+        \node [draw, circle, below=of B, yshift=-1.5cm, scale=0.8] (E) {$\textbf{z} = \bm\mu \, + \, \bm\sigma \odot \bm\epsilon$};
+        \node [draw, circle, below left=of C, xshift=0cm, yshift=-1.25cm, scale=1.2] (eps) {$\bm\epsilon$};
         \node [draw, circle, below=of E, scale=0.6] (F) {Decoder};
         \node [draw, circle, below=of F, scale=0.9] (G) {Image};
 
@@ -238,34 +260,109 @@ and
     \label{VAE}
 \end{figure}
 
+
+% 2.3 RAVE
+\subsection{RAVE}
+
+% Utilise un VAE, garde la temporalité pour pouvoir avoir une trajectoire dans l'espace latent.
+% 2e phase adversariale qui permet d'améliorer la qualité de la génération (cf annexes)
+% Post training analysis en 1 ou 2 phrases, pas besoin de détailler équation -> réduire à 8 latentes
+% Phase rend les choses galère 
+
 \newpage
-
-
-\section{Experiments on MNIST}
 %\label{headings}
 
 
-\section{Temporal Spectral VAE}
+\section{Proposed Method}
+
+% \subsection{Method}
+% Décrire l'achitecture ?
+% - architecture du modèle
+% - transformation des données
+% - reconstruction de phase
+
+In this section, we will be describing the methods used to generate audio loop from our VAE model. 
+We first determined what type of data we want our model to use as inputs and outputs. For audio generation, we have multiple choices whether to use the audio waveform as in the WaveNet paper \cite{oord2016wavenet} or the spectrogram of the audio as in the RAVE paper \cite{caillonRAVEVariationalAutoencoder2021}. Taking inspiration from RAVE network, we will be inputting and outputting mel-spectrograms to construct our audio. All of the spectrograms giving to our model is preprocessed to be normalized to the whole of the dataset. One of the issues with generating spectrograms is that there is no phase information generated with the output. There are different ways to fix this problem such as making the model learn phase from the input. The method we chose for our model is the construct the phase from the generated spectrogram. To do so, we use the Griffin-Lim algorithm \cite{griff1984}, initialized by the Phase Gradient Heap Integration (PGHI) algorithm \cite{pghi2017}.
+Another issue with generating audio from spectrograms, is for the spectrograms to have temporal and frequential consistency. To keep a sense of temporal coherence, we will be performing 1D convolutions over the time axis.
+
+The model we propose consists of five convolution stages for the encoder, with a leaky ReLU activation function and batch normalization for each stage. The decoder is has a mirror architecture of the encoder with the replacements of transposed convolutions instead of the convolutions. There are also two parallel fully connected layers to produce the means and standard deviations of our latent space. Similarly, there is one fully connected layer to connect the latent space to the entry of the decoder. A detailed summary of the model architecture can be found in the appendix.
+
+\subsection{Audio representation}
+
+One of the issues raised in and by the RAVE paper \cite{caillonRAVEVariationalAutoencoder2021} is the possibly distant representation in the latent space of similar sounding audio. This is caused by the "big" differences of the representation of the temporal waveform for "slight" phase differences. To address this problem, in our approach, we decided to feed to our model the magnitude of Melspectrograms. This makes for similar sounding audio to be close in the latent space, as phase information is cut. However, this causes problems for reconstruction. Indeed, the model now produces the magnitude of MelSpectrogram without any phase information. The choice of Melspectrograms over a normal spectrogram is to emphasize the importance of human perception. We also apply a Log1p function to the Melspectrograms to limit the range of values of the data. 
+To reconstruct proper audio from the output of the model, we must create phase information. To do so, we use either the Griffin-Lim algorithm \cite{griff1984} or the Phase Gradient Heap Integration (PGHI) algorithm \cite{pghi2017}. These alogrithms allows us to rebuild phase information from magnitude spectrograms. The Griffin-Lim alogrithm is an iterative algorithm whilst the PGHI algorithm is not. The more performing algorithm will be kept for the final model. 
+
+\subsection{Model}
+
+Wanting our output to have temporal coherence, we take inspiration from the RAVE model \cite{caillonRAVEVariationalAutoencoder2021}, in which 1D convolution are done over the magnitude Melspectrograms. The Mel channels of the spectrograms are used as channels for the convolution, therefore the convolution strides of the time bins and moves through the frequency channels. This creates a latent time dimension. We then create our means and standard deviations from the latent time and features. A summary of our model architecture is given in the annexe \ref{} and a visualization of the full process is given below:
+
+\begin{figure}
+    \centering
+    \includesvg{biblio/architecture model.drawio.svg}
+    \caption{Caption}
+    \label{fig:enter-label}
+\end{figure}
+
+\section{Experiments}
+\subsection{Experiments on MNIST}
+
+VAE are a complex model, with several important hyperparameters. Because it can be difficult to visualize the influence of each one of the parameters on a Audio VAE
+
+In order to study the influence 
+
+\subsubsection{Influence of $\beta$}
+
+Tests with $n_{latent} = 8$, $beta \in \{0, 0.5, 1, 2\}$
+
+\subsubsection{Influence of the number of latent dimensions}
+
+Tests with $\beta=0.5$, $n_{latent} \in \{2, 4, 8\}$
+
+\subsubsection{$\beta$ warm-up}
+
+
+
+
+
+\subsection{Results}
+% 6 - Results/Discussion
+
+
+% Posterior collapse, tradeoff entre reconstruction et régularisation (quand beta est trop élevé notamment)
+
+% Mettre image de départ et reconstruction pour minet
+% here explain your difficulties 
+% also highlight the dataset problem (too complex even for RAVE)  
+% you can write your ideas to improve the model and the things you would like to test if you had more time 
+
+Going back to our model, we train it on a pruned dataset comprised of audio segments of 1.5 seconds, based on the Freesound Loop Dataset\cite{ramires2020}. All of the audio segments are sampled at 44100 Hz. The audio segments are varied in genres with a slight majority of techno loops.
+We started by training the model with $\beta$ fixed to 0, in order to determine the optimal reconstruction epoch. Then, we retrained the model, this time using the beta-warmup procedure described earlier, in order to obtain separation of latent dimensions.
+
+
+
+% Unfortunately, this model and training scheme produces poor results: the reconstruction we obtain is far from the expected ground truth, and the generated sounds, if recognizable, are quite metallic and distorted in character.
+
+% Some key points to address in order to achieve better reconstruction include the dimensions of the mel spectrogram, the depth of the encoder/decoder stack. The training procedure also sometimes showed numeric instability, resulting in NaN values creeping through and ultimately crashing the training, preventing us from training for a sufficient number of epochs.
 
 \section{Realtime Audio Variational autoEncoder (RAVE)}
 
-In order to highlight the characteristic information of the latent space, we can adapt the Realtime Audio Variational autoEncoder method [1]. So, let us dig into the general procedure of this algorithm. 
+In order to highlight the characteristic information of the latent space, we can adapt the Realtime Audio Variational autoEncoder method \cite{caillonRAVEVariationalAutoencoder2021}. So, let us dig into the general procedure of this algorithm. 
 
 When we code a VAE, the representation learned theoretically contains high-level features of the dataset. However, as we now want to deal with audio signals, we should consider a 
-finer representation. Indeed, two similar signals can have slightly varying phases and result in totally different waveforms. Therefore, the reconstruction loss $\mathbb{E}_{q_\phi(z | x^{(i)})} [\log p_\theta(x^{(i)} | z)]$ 
-described above, if calculated from the raw waveform, penalizes the learned model because the phase variations are not included in the representation. This can corrupt the training process and induce low-level variations of the audio signal in the latent space, which are not relevant for sound rendering. To fix this, we can split the training processus into two steps : representation learning and the adversarial fine-tuning.
+finer representation. Indeed, two similar signals can have slightly varying phases and result in totally different waveforms. Therefore, the reconstruction loss $\mathbb{E}_{q_\phi(\textbf{z} | \textbf{x}^{(i)})} [\log p_\theta(\textbf{x}^{(i)} | \textbf{z})]$ 
+described above, if calculated from the raw waveform, penalizes the learned model because the phase variations are not included in the representation. This can corrupt the training process and induce low-level variations of the audio signal in the latent space, which are not relevant for sound rendering. To fix this, we can split the training process into two steps : representation learning and the adversarial fine-tuning.
 
-So, the first step of the procedure is the representation learning. We will use the multiscale spectral distance $S$ described by Engel et al. [3] in order to estimate the distance between the synthetized and real waveforms, denifned by : 
+So, the first step of the procedure is the representation learning. We will use the multiscale spectral distance $S$ described by Engel et al. \cite{engelDDSPDifferentiableDigital2020} in order to estimate the distance between the synthesized and real waveforms, defined by : 
 
 \begin{equation} \label{spectral_dist}
-    S(x,y) = \sum_{n \in \mathcal{N}}\, (\, \frac{\lVert STFT_n(x) - STFT_n(y) \rVert_F}{\lVert STFT_n(x) \rVert_F} \,+\, \log (\lVert STFT_n(x) - STFT_n(y) \rVert_1)   \,),
+    S(\textbf{x},\textbf{y}) = \sum_{n \in \mathcal{N}}\, \left[\, \frac{\lVert \text{STFT}_n(\textbf{x}) - \text{STFT}_n(\textbf{y}) \rVert_F}{\lVert \text{STFT}_n(\textbf{x}) \rVert_F} \,+\, \log (\lVert \text{STFT}_n(\textbf{x}) - \text{STFT}_n(\textbf{y}) \rVert_1)   \,\right],
 \end{equation}
 
-where $\mathcal{N}$ designates the set of scales, $STFT_n$ the amplitude of the short term Fourier transform with a window size n and hop size n/4, $\lVert \,.\, \rVert_F$ the Frobenius norm and $\lVert \,.\, \rVert_1$ the $l^1$ norm. We will therfore use an amplitude spectrum-based distance, which will take into account the phase reconstruction errors and contain the caracteristic information of the signal.
+where $\mathcal{N}$ designates the set of scales, $\text{STFT}_n$ the amplitude of the short term Fourier transform with a window size n and hop size n/4, $\lVert \,.\, \rVert_F$ the Frobenius norm and $\lVert \,.\, \rVert_1$ the $l^1$ norm. We will therefore use an amplitude spectrum-based distance, which will take into account the phase reconstruction errors and contain the characteristic information of the signal.
 We train the encoder and the decoder with the following loss :
 
 \begin{equation}
-    \mathcal{L}_{vae} (x) \,=\, \mathbb{E}_{\hat{x} \sim p(x|z)}(S(x,\hat x)) \,+\, \beta . \mathcal{D}_{KL}(q_\phi (z|x)||p(z)).
+    \mathcal{L}_{vae} (\textbf{x}) \,=\, \mathbb{E}_{\bm\hat{\textbf{x}} \sim p(\textbf{x}|\textbf{z})}[S(\textbf{x},\bm\hat {\textbf{x}})] \,+\, \beta . \mathcal{D}_{\text{KL}}(q_\phi (\textbf{z}|\textbf{x})||p(\textbf{z})).
 \end{equation}
 
 We train the model with this loss and once it converges, we move on to the next step.
@@ -275,40 +372,40 @@ The second step aims to improve the audio quality and its natural appearance. On
 
 
 \begin{align}
-    \mathcal{L}_{dis}(x,z) &= \max(0, 1 - D(x)) + \mathbb{E}_{\hat x \sim p(x|z)}(\max(0, 1 + D(\hat x))) \\
-    \mathcal{L}_{gen}(z) &= -\mathbb{E}_{\hat x \sim p(x|z)}(D(\hat x))
+    \mathcal{L}_{\text{dis}}(\textbf{x},\textbf{z}) &= \max(0, 1 - D(x)) + \mathbb{E}_{\bm\hat \textbf{x} \sim p(\textbf{x}|\textbf{z})}[\max(0, 1 + D(\bm\hat \textbf{x}))] \\
+    \mathcal{L}_{\text{gen}}(\textbf{z}) &= -\mathbb{E}_{\bm\hat{ \textbf{x}} \sim p(\textbf{x}|\textbf{z})}[D(\bm\hat{ \textbf{x}})].
 \end{align}
 
-Since we do not want the synthetised signal $\hat x$ to diverge too much from the real signal $x$, we keep minimizing the spectral distance defined above (\ref{spectral_dist}) by adding the feature matching loss $\mathcal{L}_{FM}$ [6]. By combining everything, we end up at the wanted decoder :
+Since we do not want the synthetised signal $\bm\hat{\textbf{x}}$ to diverge too much from the real signal $\textbf{x}$, we keep minimizing the spectral distance defined above (\ref{spectral_dist}) by adding the feature matching loss $\mathcal{L}_{FM}$ \cite{kumarMelGANGenerativeAdversarial2019}. By combining everything, we end up at the wanted decoder :
 
 \begin{equation}
-    \mathcal{L}_{total} (x,z) \,=\, \mathcal{L}_{gen}(z)\,+\,\mathbb{E}_{\hat x \sim p(x|z)}(S(x, \hat x ) + \mathcal{L}_{FM}(x, \hat x)).
+    \mathcal{L}_{\text{total}} (\textbf{x},\textbf{z}) \,=\, \mathcal{L}_{\text{gen}}(\textbf{z})\,+\,\mathbb{E}_{\bm\hat{\textbf{x}} \sim p(\textbf{x}|\textbf{z})}[S(\textbf{x}, \bm\hat{\textbf{x}}) + \mathcal{L}_{\text{FM}}(\textbf{x}, \bm\hat{\textbf{x}})].
 \end{equation}
 
 
 
-Moreover, the loss we used in the first step consists of two terms : the  reconstruction term $\mathbb{E}_{\hat{x} \sim p(x|z)}(S(x,\hat x))$ and the regularisation term $\mathcal{D}_{KL}(q_\phi (z|x)||p(z))$. The reconstruction aims to maximise the mutual information between the latent representation and the data distribution while the regularisation tends to make the posterior distribution independent from data. The final objective guides the model to acquire condensed representations of the data. In this process, meaningful latent factors exhibit the greatest KL divergence from the prior distribution, whereas less informative latent factors have a KL divergence approaching zero, as outlined by Higgins et al. [4].
+Moreover, the loss we used in the first step consists of two terms : the  reconstruction term $\mathbb{E}_{\hat{\textbf{x}} \sim p(\textbf{x}|\textbf{z})}[S(\textbf{x},\bm\hat{ \textbf{x}})]$ and the regularisation term $\mathcal{D}_{\text{KL}}(q_\phi (\textbf{z}|\textbf{x})||p(\textbf{z}))$. The reconstruction aims to maximise the mutual information between the latent representation and the data distribution while the regularisation tends to make the posterior distribution independent from data. The final objective guides the model to acquire condensed representations of the data. In this process, meaningful latent factors exhibit the greatest KL divergence from the prior distribution, whereas less informative latent factors have a KL divergence approaching zero, as outlined by Higgins et al. \cite{higginsVVAELEARNINGBASIC2017}.
 
 In order to better understand the latent representation, we will try to identify the most informative part of it. Our goal is to reduce the dimension of the representation learned to the minimum requierd to reconstruct the signal. To do this, we adapt the method for range and null space estimation to this problem.
 
-Let $Z \in \mathbb{R}^{b \times d}$ a matrix composed of $b$ samples $z \in \mathbb{R}^d$, where $z \sim q_\phi(z|x)$. Since the collapsed parts of Z has a high variance, we first start to subtract the variance from Z by considering the matrix $Z' \in \mathbb{R}^{b \times d}$ :
+Let $\textbf{Z} \in \mathbb{R}^{b \times d}$ a matrix composed of $b$ samples $\textbf{z} \in \mathbb{R}^d$, where $\textbf{z} \sim q_\phi(\textbf{z}|\textbf{x})$. Since the collapsed parts of \textbf{Z} has a high variance, we first start to subtract the variance from \textbf{Z} by considering the matrix $\textbf{Z}' \in \mathbb{R}^{b \times d}$ :
 \begin{equation}
-    Z_i' = \text{argmax}_{z} q_\phi (z|x).
+    \textbf{Z}_i' = \text{argmax}_{\textbf{z}} q_\phi (\textbf{z}|\textbf{x}).
 \end{equation}
-Thus, the dimensions of the posterior distribution \(q_{\phi}(z|x)\) that have collapsed to the prior \(p(z)\) will yield a constant value in \(Z'\). To address this, we nullify this constant value by subtracting the mean of \(Z'\) along the first dimension. The only dimension of $Z'$ with values different from zero will be correlated to the input, which contais the informative part of the latent space.
+Thus, the dimensions of the posterior distribution \(q_{\phi}(\textbf{z}|\textbf{x})\) that have collapsed to the prior \(p(\textbf{z})\) will yield a constant value in \(\textbf{Z}'\). To address this, we nullify this constant value by subtracting the mean of \(\textbf{Z}'\) along the first dimension. The only dimension of $\textbf{Z}'$ with values different from zero will be correlated to the input, which contais the informative part of the latent space.
 
 We can now decompose this centerd matrix into singular values :
 \begin{equation}
-    Z'\,=\, U\, \Sigma \,^tV,
+    \textbf{Z}'\,=\, \textbf{U}\, \bm\Sigma \,^{\textbf{t}}\textbf{V},
 \end{equation}
 
-where $\Sigma$ is composed by the singular values of $Z'$.
-Then, it can be showed that the rank $r$ of $Z'$ is equal to the number of non-zero singular values of $Z'$ present in $\Sigma$. But the singular values that we want to identify as zero are not very likely to be strictly equal to zero, given the high variabilities in real data. So, if we want to find the rank of $Z'$, we must define a fidelity parameter $f \in [0,1]$ and the associated rank $r_f$ defined as the the smallest integer verifying :
+where $\bm\Sigma$ is composed by the singular values of $\textbf{Z}'$.
+Then, it can be showed that the rank $r$ of $\textbf{Z}'$ is equal to the number of non-zero singular values of $\textbf{Z}'$ present in $\bm\Sigma$. But the singular values that we want to identify as zero are not very likely to be strictly equal to zero, given the high variabilities in real data. So, if we want to find the rank of $\textbf{Z}'$, we must define a fidelity parameter $f \in [0,1]$ and the associated rank $r_f$ defined as the the smallest integer verifying :
 \begin{equation}
-    \frac{\sum_{i \leq r_f} \Sigma_{ii}}{\sum_i \Sigma_{ii}} \geq f.
+    \frac{\sum_{i \leq r_f} \bm\Sigma_{ii}}{\sum_i \bm\Sigma_{ii}} \geq f.
 \end{equation}
 
-for a specific value of $f$ and a latent representation $z \sim q_\phi (z|x)$, we can reduce the dimension of $z$ by projecting it on the base defined by $^tV$. We then only keep the $r_f$ first dimensions to obtain a low-rank representation of $z_f$. Note that this dimension depends on $f$ and the dataset. Finally, we concatenate $z_f$ with a noise sampled from the prior distribution, we reproject it on the the original basis using $V$ and we give it to the decoder.
+for a specific value of $f$ and a latent representation $\textbf{z} \sim q_\phi (\textbf{z}|\textbf{x})$, we can reduce the dimension of $\textbf{z}$ by projecting it on the base defined by $^\textbf{t}\textbf{V}$. We then only keep the $r_f$ first dimensions to obtain a low-rank representation of $\textbf{z}_f$. Note that this dimension depends on $f$ and the dataset. Finally, we concatenate $\textbf{z}_f$ with a noise sampled from the prior distribution, we reproject it on the the original basis using $\textbf{V}$ and we give it to the decoder.
 
 %\section{Citations, figures, tables}
 %\label{others}
@@ -450,30 +547,70 @@ for a specific value of $f$ and a latent representation $z \sim q_\phi (z|x)$, w
     numbered.
 \end{comment}
 
+\printbibliography
+% \bibliography
 
 
 
-\section*{References}
+\section{Appendixes}
+
+
+\subsection{RAVE architecture}
+
+\subsection{Task distribution}
+
+% TODO remplir
+
+\begin{itemize}
+    \item[•] Paul
+    \begin{itemize}
+        \item[$\circ$] 
+        \item[$\circ$] 
+        \item[$\circ$] 
+    \end{itemize}
+    \item[•] Antoine
+    \begin{itemize}
+        \item[$\circ$] 
+        \item[$\circ$] 
+        \item[$\circ$] 
+    \end{itemize}
+    \item[•] Etienne
+    \begin{itemize}
+        \item[$\circ$] 
+        \item[$\circ$] 
+        \item[$\circ$] 
+    \end{itemize}
+    \item[•] Enguérand
+    \begin{itemize}
+        \item[$\circ$] 
+        \item[$\circ$] 
+        \item[$\circ$] 
+    \end{itemize}
 
 
 
-[1] Antoine Caillon and Philippe Esling.  Rave: A variational autoencoder for fast and high-quality neural audio synthesis. \textit{arXiv preprint arXiv:2111.05011}, 2021.
+\end{itemize}
 
-
-[2] Esse Engel, Kumar Krishna Agrawal, Shuo Chen, Ishaan Gulrajani, Chris Donahue and Adam Roberts. Gan- synth: Adversarial neural audio synthesis. \textit{arXiv preprint arXiv:1902.08710}, 2019.
-
-
-[3] Jesse Engel, Lamtharn Hantrakul, Chenjie Gu and Adam Roberts. Ddsp: Differentiable digital signal processing. \textit{arXiv preprint arXiv:2001.04643}, 2020.
-
-[4] Irina Higgins, Loïc Matthey, Arka Pal, Christopher Burgess, Xavier Glorot, Matthew M Botvinick, Shakir Mohamed, and Alexander Lerchner. beta-vae: Learning basic visual concepts with a constrained variational frame- work. \textit{In ICLR}, 2017.
-
-
-[5] Diederik P Kingma and Max Welling. Auto-encoding variational bayes. \textit{arXiv:1312.6114}, 2013. 
+% \section*{References}
 
 
 
-[6] Kundan Kumar, Rithesh Kumar, Thibault de Boissiere, Lucas Gestin, Wei Zhen Teoh, Jose Sotelo, Alexandre de Brebisson, Yoshua Bengio, and Aaron Courville. MelGAN: Generative Adversarial Networks for Conditional Waveform Synthesis. \textit{arXiv, 10 2019}.
+% [1] Antoine Caillon and Philippe Esling.  Rave: A variational autoencoder for fast and high-quality neural audio synthesis. \textit{arXiv preprint arXiv:2111.05011}, 2021.
 
+
+% [2] Esse Engel, Kumar Krishna Agrawal, Shuo Chen, Ishaan Gulrajani, Chris Donahue and Adam Roberts. Gan- synth: Adversarial neural audio synthesis. \textit{arXiv preprint arXiv:1902.08710}, 2019.
+
+
+% [3] Jesse Engel, Lamtharn Hantrakul, Chenjie Gu and Adam Roberts. Ddsp: Differentiable digital signal processing. \textit{arXiv preprint arXiv:2001.04643}, 2020.
+
+% [4] Irina Higgins, Loïc Matthey, Arka Pal, Christopher Burgess, Xavier Glorot, Matthew M Botvinick, Shakir Mohamed, and Alexander Lerchner. beta-vae: Learning basic visual concepts with a constrained variational frame- work. \textit{In ICLR}, 2017.
+
+
+% [5] Diederik P Kingma and Max Welling. Auto-encoding variational bayes. \textit{arXiv:1312.6114}, 2013. 
+
+
+
+% [6] Kundan Kumar, Rithesh Kumar, Thibault de Boissiere, Lucas Gestin, Wei Zhen Teoh, Jose Sotelo, Alexandre de Brebisson, Yoshua Bengio, and Aaron Courville. MelGAN: Generative Adversarial Networks for Conditional Waveform Synthesis. \textit{arXiv, 10 2019}.
 
 
 
