@@ -16,7 +16,9 @@
 \usepackage[final]{neurips_2020}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage[Ink]{svg}
+\usepackage{listings}
+
+
 
 
 % to compile a preprint version, e.g., for submission to arXiv, add add the
@@ -57,6 +59,24 @@
 \usepackage{amsmath}
 \usepackage{interval}
 \usepackage{bm}
+
+\lstdefinestyle{mystyle}{
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=false,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+
 
 
 \title{Projet ATIAM 2022-2023 : Exploring the latent space of a temporal VAE for audio loops generation}
@@ -189,7 +209,7 @@ we must use a maximum likelihood estimation to approximate the likelihood densit
 
 
 % 2.2. VAE
-\subsection{VAE}
+\subsection{Variational AutoEncoders (VAE)}
 
 % ELBO
 % then introduce beta
@@ -198,18 +218,13 @@ we must use a maximum likelihood estimation to approximate the likelihood densit
 % Encodeur modélise posteriori et décoder log vraisemblance
 
 
-To solve this problem Kingma and Welling \cite{kingmaAutoEncodingVariationalBayes2022} have introduced Variational autoencoders (VAE). The VAE model introduces a recognition model which will approximate the true posterior density. This defines an encoder $q_\phi(\textbf{z} | \textbf{x})$ : for a given datapoint $\textbf{x}$, $q_\phi$ produces variables from which $\textbf{x}$ could have been generated. 
+To solve this problem Kingma and Welling \cite{kingmaAutoEncodingVariationalBayes2022} have introduced Variational AutoEncoders (VAE). The VAE model introduces a recognition model which will approximate the true posterior density. This defines an encoder $q_\phi(\textbf{z} | \textbf{x})$ : for a given datapoint $\textbf{x}$, $q_\phi$ produces variables from which $\textbf{x}$ could have been generated. 
 
 The parameter $\phi$ is supposed to minimize its Kullback-Leibler (KL) divergence with the actual posterior distribution $p(\textbf{z}|\textbf{x})$ through optimization :
 \begin{equation}
     \phi^* = \text{argmin}_{\phi} \mathcal{D}_{\text{KL}}[q_\phi(\textbf{z}|\textbf{x}||p(\textbf{z}||\textbf{x}))].
 \end{equation}
-Likewise, $p_\theta(\textbf{x}|\textbf{z})$ is a probabilistic decoder : for a given latent variable $\textbf{z}$, it produces a distribution of possibly corresponding variables $\textbf{x}$. We will thus jointly optimize $\phi$ (the recognition model parameter) and $\theta$ (the generative model parameter). It can be showed (see anexes) that 
-
-
-
-using the following loss function 
-
+Likewise, $p_\theta(\textbf{x}|\textbf{z})$ is a probabilistic decoder : for a given latent variable $\textbf{z}$, it produces a distribution of possibly corresponding variables $\textbf{x}$. We will thus jointly optimize $\phi$ (the recognition model parameter) and $\theta$ (the generative model parameter). It can be showed (see anexes) that this optimization problem can be reduced to the final loss used to train a VAE, called Evidence Lower BOund (ELBO) :
 
 \begin{equation}\label{loss1}
     \mathcal{L}(\theta, \phi ; \textbf{x}^{(i)}) = -\mathcal{D}_{KL}(q_\phi(\textbf{z} | \textbf{x}^{(i)}) || p_\theta(\textbf{z})) + \mathbb{E}_{q_\phi(\textbf{z} | \textbf{x}^{(i)})} [\log p_\theta(\textbf{x}^{(i)} | \textbf{z})]
@@ -217,7 +232,7 @@ using the following loss function
 
 %on a (\ref{loss1})
 
-This will be our loss function. Note that the two terms correspond to two different losses :
+Note that the two terms correspond to two different losses :
 
 \begin{align*}
     \mathbb{E}_{q_\phi(\textbf{z} | \textbf{x}^{(i)})} [\log p_\theta(\textbf{x}^{(i)} | \textbf{z})] &:\ \texttt{reconstruction loss} \\
@@ -226,15 +241,20 @@ This will be our loss function. Note that the two terms correspond to two differ
 
 The reconstruction loss increases the likelihood of the data generated given a configuration of the latent, while the regularization loss measures the proximity of the true prior $p_\theta (\textbf{z})$ compared to the approximated posterior $q_\phi(\textbf{z}|\textbf{x})$. This one allows the algorithm to optimize the choice of $q$ with respect to the true posterior distribution. 
 
+\textit{The reconstruction aims to maximise the mutual information between the latent representation and the data distribution while the regularisation tends to make the posterior distribution independent from data.}
+
 Note that we will use an extra parameter $\beta$ in order to adjust the weight of the regularization loss, as explained by Higgins et al. \cite{higginsVVAELEARNINGBASIC2017} :
 
 \begin{center}
-    \begin{equation}\label{loss1beta}
+    \begin{equation}\label{eq:loss1beta}
         \mathcal{L}(\theta, \phi ; \textbf{x}^{(i)}) = - \beta \, \mathcal{D}_{KL}(q_\phi(\textbf{z} | \textbf{x}^{(i)}) || p_\theta(\textbf{z})) + \mathbb{E}_{q_\phi(\textbf{z} | \textbf{x}^{(i)})} [\log p_\theta(\textbf{x}^{(i)} | \textbf{z})].
     \end{equation}
 \end{center}
 
+They demonstrate that as $\beta > 1$ increases, the latent dimensions become less entangled, but this comes at the expense of the reconstruction quality.
 
+\begin{comment}
+    
 
 \begin{figure}[h]
     \centering
@@ -267,17 +287,36 @@ Note that we will use an extra parameter $\beta$ in order to adjust the weight o
     \caption{Complete diagram of the VAE with reparametrization}
     \label{VAE}
 \end{figure}
+\end{comment}
 
 
 % 2.3 RAVE
-\subsection{RAVE}
+\subsection{Realtime Audio Variational autoEncoder (RAVE)}
 
 % Utilise un VAE, garde la temporalité pour pouvoir avoir une trajectoire dans l'espace latent.
 % 2e phase adversariale qui permet d'améliorer la qualité de la génération (cf annexes)
 % Post training analysis en 1 ou 2 phrases, pas besoin de détailler équation -> réduire à 8 latentes
 % Phase rend les choses galère 
 
-\newpage
+
+In order to highlight the characteristic information of the latent space, we can draw inspiration from the Realtime Audio Variational autoEncoder \cite{caillonRAVEVariationalAutoencoder2021}. This uses a VAE while keeping the temporality to be able to have a trajectory in the latent space.
+
+When we code a VAE, the representation learned theoretically contains \textit{high-level} features of the dataset. However, as we now want to deal with audio signals, we should consider a 
+finer representation. Indeed, two similar signals can have slightly varying phases and result in totally different waveforms. Therefore, the reconstruction loss described above \ref{loss1}, if calculated from the raw waveform, penalizes the learned model because the phase variations are not included in the representation. This can corrupt the training process and induce low-level variations of the audio signal in the latent space, which are not relevant for sound rendering. To fix this, we can proceed the \textit{representation learning}. We will use the multiscale spectral distance $S$ described by Engel et al. \cite{engelDDSPDifferentiableDigital2020} in order to estimate the distance between the synthesized and real waveforms. We will therefore use an amplitude spectrum-based distance, which will take into account the phase reconstruction errors and contain the characteristic information of the signal.
+We train the encoder and the decoder with the following loss :
+
+\begin{equation}
+    \mathcal{L}_{vae} (\textbf{x}) \,=\, \mathbb{E}_{\bm\hat{\textbf{x}} \sim p(\textbf{x}|\textbf{z})}[S(\textbf{x},\bm\hat {\textbf{x}})] \,+\, \beta \mathcal{D}_{\text{KL}}(q_\phi (\textbf{z}|\textbf{x})||p(\textbf{z})).
+\end{equation}
+
+Note that there is a second step whose purpose is to improve the audio quality and its natural appearance (see annex for more details on RAVE).
+
+
+
+The final objective is to enable the model to acquire condensed representations of the data. In this process, meaningful latent factors exhibit the greatest KL divergence from the prior distribution, whereas less informative latent factors have a KL divergence approaching zero, as outlined by Higgins et al. \cite{higginsVVAELEARNINGBASIC2017}. A post training analysis allows us to identify the most informative part of  the latent representation, and in the end, to reduce its dimensionality to $8$.
+
+
+
 %\label{headings}
 
 
@@ -289,11 +328,6 @@ Note that we will use an extra parameter $\beta$ in order to adjust the weight o
 % - transformation des données
 % - reconstruction de phase
 
-In this section, we will be describing the methods used to generate audio loop from our VAE model. 
-We first determined what type of data we want our model to use as inputs and outputs. For audio generation, we have multiple choices whether to use the audio waveform as in the WaveNet paper \cite{oord2016wavenet} or the spectrogram of the audio as in the RAVE paper \cite{caillonRAVEVariationalAutoencoder2021}. Taking inspiration from RAVE network, we will be inputting and outputting mel-spectrograms to construct our audio. All of the spectrograms giving to our model is preprocessed to be normalized to the whole of the dataset. One of the issues with generating spectrograms is that there is no phase information generated with the output. There are different ways to fix this problem such as making the model learn phase from the input. The method we chose for our model is the construct the phase from the generated spectrogram. To do so, we use the Griffin-Lim algorithm \cite{griff1984}, initialized by the Phase Gradient Heap Integration (PGHI) algorithm \cite{pghi2017}.
-Another issue with generating audio from spectrograms, is for the spectrograms to have temporal and frequential consistency. To keep a sense of temporal coherence, we will be performing 1D convolutions over the time axis.
-
-The model we propose consists of five convolution stages for the encoder, with a leaky ReLU activation function and batch normalization for each stage. The decoder is has a mirror architecture of the encoder with the replacements of transposed convolutions instead of the convolutions. There are also two parallel fully connected layers to produce the means and standard deviations of our latent space. Similarly, there is one fully connected layer to connect the latent space to the entry of the decoder. A detailed summary of the model architecture can be found in the appendix.
 
 \subsection{Audio representation}
 
@@ -302,31 +336,103 @@ To reconstruct proper audio from the output of the model, we must create phase i
 
 \subsection{Model}
 
-Wanting our output to have temporal coherence, we take inspiration from the RAVE model \cite{caillonRAVEVariationalAutoencoder2021}, in which 1D convolution are done over the magnitude Melspectrograms. The Mel channels of the spectrograms are used as channels for the convolution, therefore the convolution strides of the time bins and moves through the frequency channels. This creates a latent time dimension. We then create our means and standard deviations from the latent time and features. A summary of our model architecture is given in the annexe \ref{} and a visualization of the full process is given below:
+Wanting our output to have temporal coherence, we take inspiration from the RAVE model \cite{caillonRAVEVariationalAutoencoder2021}, in which 1D convolution are done over the magnitude Melspectrograms. The Mel channels of the spectrograms are used as channels for the convolution, therefore the convolution strides of the time bins and moves through the frequency channels. This creates a latent time dimension. We then create our means and standard deviations from the latent time and features. The model we propose consists of five convolution stages for the encoder, with a leaky ReLU activation function and batch normalization for each stage. The decoder is has a mirror architecture of the encoder with the replacements of transposed convolutions instead of the convolutions. There are also two parallel fully connected layers to produce the means and standard deviations of our latent space. Similarly, there is one fully connected layer to connect the latent space to the entry of the decoder. A detailed summary of the model architecture can be found in the appendix.A summary of our model architecture is given in the appendix \ref{} and a visualization of the full process is given below:
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
-    \includesvg{biblio/architecture model.drawio.svg}
+    \includesvg
     \caption{Caption}
     \label{fig:enter-label}
 \end{figure}
 
+
 \section{Experiments}
 \subsection{Experiments on MNIST}
 
-VAE are a complex model, with several important hyperparameters. Because it can be difficult to visualize the influence of each one of the parameters on a Audio VAE
+VAE are a complex model, with several important hyperparameters. Because it can be difficult to visualize the influence of each one of the parameters on a temporal audio model, we first conducted experiments using a simple image VAE trained on the MNIST dataset.
 
-In order to study the influence 
-
-\subsubsection{Influence of $\beta$}
-
-Tests with $n_{latent} = 8$, $beta \in \{0, 0.5, 1, 2\}$
+We used simple encoders and decoders, each consisting of two fully connected layers, paired with ReLu or Sigmoid (see appendix \ref{subsec:VAE MNIST archi}). We used a Mean Squared Error as the reconstruction loss, Adam for the optimizer with a learning rate of $1e-3$.
 
 \subsubsection{Influence of the number of latent dimensions}
 
-Tests with $\beta=0.5$, $n_{latent} \in \{2, 4, 8\}$
+The first important parameter in a VAE is the dimension of its latent space $n_{l}$.
+The higher the dimension, the more complex the VAE. Therefore using a high latent dimension can lead to better reconstruction, but is also harder to control due to the high number of parameters.
+
+As shown in the following paragraph \ref{subsub:beta}, $\beta = 0.5$ seems appropriate to differ from a standard autoencoder ($\beta=0$), while not getting too blurry because of the regularisation.
+
+Figure \ref{fig:n_l influence reconstruction} illustrates this influence: reconstruction is globally better with an increased latent dimension. %TODO insert loss
+
+\begin{figure}
+  \centering
+  \begin{subfigure}[b]{.2\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{report/images/lat2/vae_0.5_0.5_ep100_lat2_hid512_2201-0938.pt_original.png}
+    \caption{Original test images}
+    \label{subfig:original mnist}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{.2\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{report/images/lat2/vae_0.5_0.5_ep100_lat2_hid512_2201-0938.pt_reconstructed.png}
+    \caption{Reconstructed images, $n_l = 2$}
+    \label{subfig:recons n_l=2}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{.2\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{report/images/lat4/vae_0.5_0.5_ep100_lat4_hid512_2201-1012.pt_reconstructed.png}
+    \caption{Reconstructed images, $n_l = 4$}
+    \label{subfig:recons n_l=4}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{.2\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{report/images/lat8/vae_0.5_0.5_ep100_lat8_hid512_2201-1114.pt_reconstructed.png}
+    \caption{Reconstructed images, $n_l = 8$}
+    \label{subfig:recons n_l=8}
+  \end{subfigure}
+  \caption{Influence of $n_l$ over the reconstruction. $\beta=0.5$, results after 100 epochs}
+  \label{fig:n_l influence reconstruction}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \begin{subfigure}[b]{.2\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{report/images/lat2/vae_0.5_0.5_ep100_lat2_hid512_2201-0938.pt_latent_dim.png}
+    \caption{Latent dimensions, $n_l = 2$}
+    \label{subfig:latent n_l=2}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{.2\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{report/images/lat4/vae_0.5_0.5_ep100_lat4_hid512_2201-1012.pt_latent_dim.png}
+    \caption{Reconstructed images, $n_l = 4$}
+    \label{subfig:latent n_l=4}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{.2\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{report/images/lat8/vae_0.5_0.5_ep100_lat8_hid512_2201-1114.pt_latent_dim.png}
+    \caption{Reconstructed images, $n_l = 8$}
+    \label{subfig:latent n_l=8}
+  \end{subfigure}
+  \caption{Influence of $n_l$ over the reconstruction. $\beta=0.5$, results after 100 epochs}
+  \label{fig:n_l influence latent}
+\end{figure}
+
+
+\subsubsection{Influence of $\beta$ and posterior collapse}
+\label{subsub:beta}
+
+Equation \eqref{eq:loss1beta} features a regularization term, the size of which is proportional to $\beta$ 
+
+Tests with $n_{latent} = 8$, $beta \in \{0, 0.5, 1, 2\}$
+
+
 
 \subsubsection{$\beta$ warm-up}
+% Posterior collapse, tradeoff entre reconstruction et régularisation (quand beta est trop élevé notamment)
 
 
 
@@ -336,112 +442,71 @@ Tests with $\beta=0.5$, $n_{latent} \in \{2, 4, 8\}$
 % 6 - Results/Discussion
 
 
-% Posterior collapse, tradeoff entre reconstruction et régularisation (quand beta est trop élevé notamment)
 
 % Mettre image de départ et reconstruction pour minet
 % here explain your difficulties 
 % also highlight the dataset problem (too complex even for RAVE)  
 % you can write your ideas to improve the model and the things you would like to test if you had more time 
 
-Going back to our model, we train it on a pruned dataset comprised of audio segments of 1.5 seconds, based on the Freesound Loop Dataset\cite{ramires2020}. All of the audio segments are sampled at 44100 Hz. The audio segments are varied in genres with a slight majority of techno loops.
-We started by training the model with $\beta$ fixed to 0, in order to determine the optimal reconstruction epoch. Then, we retrained the model, this time using the beta-warmup procedure described earlier, in order to obtain separation of latent dimensions.
+As highlighted in the previous section, there is a tradeoff between reconstruction accuracy and latent space regularisation : careful refining of the $\beta$ and/or warmup hyperparameters is needed to achieve satisfactory results.
 
-\begin{figure}%
+Going back to our model, we train it on a pruned dataset comprised of audio segments of 1.5 seconds, based on the Freesound Loop Dataset\cite{ramires2020}. All of the audio segments are sampled at 44100 Hz. The audio segments are varied in genres with a slight majority of techno loops.
+We start by training the model with $\beta$ fixed to 0, in order to determine the optimal reconstruction epoch. Then, we retrained the model, this time using the beta-warmup procedure described earlier, in order to obtain separation of latent dimensions.
+
+With our trained weights, we are now able to reconstruct audio samples from the dataset. The phase information is obtained by either copying the original phase, or by reconstructing it by the methods described previously. We are also able to generate novel samples by sampling points in the latent space.
+
+Reconstructed examples are available in the \href{https://github.com/estevep/Temporal-Audio-VAE/tree/main/examples}{examples subdirectory of our repository}. Spectrograms of the original example (\verb|original.wav|) and their reconstructed version using our method(\verb|temporal_audio_vae.wav|), RAVE with GAN (\verb|rave.wav|) and without (\verb|rave_vae.wav|) are reproduced in figure \ref{figure:reconstruction}. Additionally, and not reproduced here, we provide an example with reconstructed phase (\verb|temporal_audio_vae_phase.wav|), and a random exploration of the latent space (\verb||).
+
+As we can see in the reconstructed examples, our method\ref{figure:reco-ours}, while retaining some time and frequency coherence, performs poorly compared to RAVE with VAE only\ref{figure:reco-ravenogan}. This illustrates the difficulties we had with defining both the mel-spectrogram resolution (both in time and frequency) and the final encoder / decoder architecture, which are highly coupled.
+
+Furthermore, listening to the example with reconstructed phase, we can hear a significant loss of quality compared to the one with copied phase, despite it being generated with quite a high number of griffin-lim iterations. However, during isolated testing of the mel-spectrogram forward and backward transformation, we observed that the resolution and parameters chosen can provide reconstructions of sufficient quality, including with algorithmic phase reconstruction. Thus, We suspect this illustrates an inherent problem within the model architecture.
+
+Finally, we note that even RAVE with GAN fails to attain an acceptable reconstruction of the original. We attribute this to the inherent complexity of the chosen dataset.
+
+In order to improve upon our results, we can identify some key points to address: 
+\begin{itemize}
+    \item Future improvement efforts should focus on refining the model architecture and the dimensions of the latent space rather than the data transformation procedure.
+    \item A more thorough pruning and cleaning of the dataset would also enable easier reconstruction for both our approach and RAVE, and provide more insightful comparisons.
+    \item Finally, due to time constraints, we were not able to assess nor exploit the latent space regularization in our trained model. After addressing the two previous points, and hopefully obtaining comparable reconstructions to rave without GAN, further exploration of this aspect is needed.
+\end{itemize}
+
+\begin{figure}[h!]%
 \centering
-\begin{subfigure}[b]{0.2\textwidth}
+\begin{subfigure}[t]{0.4\textwidth}
 \centering
 \includegraphics[width=\textwidth]{examples/original.wav.png}
 \caption{Original}
+\label{figure:reco-original}
 \end{subfigure} \hfill
-
-\begin{subfigure}[b]{0.2\textwidth}
+\begin{subfigure}[t]{0.4\textwidth}
 \centering
 \includegraphics[width=\textwidth]{examples/temporal_audio_vae.wav.png}
 \caption{Ours}
+\label{figure:reco-ours}
 \end{subfigure} \hfill
 
-
-\begin{subfigure}[b]{0.2\textwidth}
+\begin{subfigure}[t]{0.4\textwidth}
 \centering
 \includegraphics[width=\textwidth]{examples/rave_vae.wav.png}
-\caption{Rave (}
+\caption{RAVE (VAE only)}
+\label{figure:reco-ravenogan}
 \end{subfigure} \hfill
-
-\begin{subfigure}[b]{0.2\textwidth}
+\begin{subfigure}[t]{0.4\textwidth}
 \centering
 \includegraphics[width=\textwidth]{examples/rave.wav.png}
-\caption{After}
+\caption{RAVE (VAE+GAN)}
+\label{figure:reco-ravegan}
 \end{subfigure}
 
-\caption[Hello]{Hello, this a minimal working example}
+\caption[Hello]{Spectrograms of reconstructed audio from dataset}
+\label{figure:reconstruction}
 \end{figure}
 
 % Unfortunately, this model and training scheme produces poor results: the reconstruction we obtain is far from the expected ground truth, and the generated sounds, if recognizable, are quite metallic and distorted in character.
 
 % Some key points to address in order to achieve better reconstruction include the dimensions of the mel spectrogram, the depth of the encoder/decoder stack. The training procedure also sometimes showed numeric instability, resulting in NaN values creeping through and ultimately crashing the training, preventing us from training for a sufficient number of epochs.
 
-\section{Realtime Audio Variational autoEncoder (RAVE)}
 
-In order to highlight the characteristic information of the latent space, we can adapt the Realtime Audio Variational autoEncoder method \cite{caillonRAVEVariationalAutoencoder2021}. So, let us dig into the general procedure of this algorithm. 
-
-When we code a VAE, the representation learned theoretically contains high-level features of the dataset. However, as we now want to deal with audio signals, we should consider a 
-finer representation. Indeed, two similar signals can have slightly varying phases and result in totally different waveforms. Therefore, the reconstruction loss $\mathbb{E}_{q_\phi(\textbf{z} | \textbf{x}^{(i)})} [\log p_\theta(\textbf{x}^{(i)} | \textbf{z})]$ 
-described above, if calculated from the raw waveform, penalizes the learned model because the phase variations are not included in the representation. This can corrupt the training process and induce low-level variations of the audio signal in the latent space, which are not relevant for sound rendering. To fix this, we can split the training process into two steps : representation learning and the adversarial fine-tuning.
-
-So, the first step of the procedure is the representation learning. We will use the multiscale spectral distance $S$ described by Engel et al. \cite{engelDDSPDifferentiableDigital2020} in order to estimate the distance between the synthesized and real waveforms, defined by : 
-
-\begin{equation} \label{spectral_dist}
-    S(\textbf{x},\textbf{y}) = \sum_{n \in \mathcal{N}}\, \left[\, \frac{\lVert \text{STFT}_n(\textbf{x}) - \text{STFT}_n(\textbf{y}) \rVert_F}{\lVert \text{STFT}_n(\textbf{x}) \rVert_F} \,+\, \log (\lVert \text{STFT}_n(\textbf{x}) - \text{STFT}_n(\textbf{y}) \rVert_1)   \,\right],
-\end{equation}
-
-where $\mathcal{N}$ designates the set of scales, $\text{STFT}_n$ the amplitude of the short term Fourier transform with a window size n and hop size n/4, $\lVert \,.\, \rVert_F$ the Frobenius norm and $\lVert \,.\, \rVert_1$ the $l^1$ norm. We will therefore use an amplitude spectrum-based distance, which will take into account the phase reconstruction errors and contain the characteristic information of the signal.
-We train the encoder and the decoder with the following loss :
-
-\begin{equation}
-    \mathcal{L}_{vae} (\textbf{x}) \,=\, \mathbb{E}_{\bm\hat{\textbf{x}} \sim p(\textbf{x}|\textbf{z})}[S(\textbf{x},\bm\hat {\textbf{x}})] \,+\, \beta . \mathcal{D}_{\text{KL}}(q_\phi (\textbf{z}|\textbf{x})||p(\textbf{z})).
-\end{equation}
-
-We train the model with this loss and once it converges, we move on to the next step.
-
-The second step aims to improve the audio quality and its natural appearance. Once we assume that the learned representation reached a satisfactory state, we only train the decoder using an adversarial objective. The GANs are an implicit generative model which allows to sample from a complex distribution by changing it in a simplier one, called base distribution. We use here the latent space learned in the first step as base distribution and we train the decoder to produce synthetised signals similar to real signals, using a discriminator D. We use the hinge loss version of the GAN objective, defined as :
-
-
-
-\begin{align}
-    \mathcal{L}_{\text{dis}}(\textbf{x},\textbf{z}) &= \max(0, 1 - D(x)) + \mathbb{E}_{\bm\hat \textbf{x} \sim p(\textbf{x}|\textbf{z})}[\max(0, 1 + D(\bm\hat \textbf{x}))] \\
-    \mathcal{L}_{\text{gen}}(\textbf{z}) &= -\mathbb{E}_{\bm\hat{ \textbf{x}} \sim p(\textbf{x}|\textbf{z})}[D(\bm\hat{ \textbf{x}})].
-\end{align}
-
-Since we do not want the synthetised signal $\bm\hat{\textbf{x}}$ to diverge too much from the real signal $\textbf{x}$, we keep minimizing the spectral distance defined above (\ref{spectral_dist}) by adding the feature matching loss $\mathcal{L}_{FM}$ \cite{kumarMelGANGenerativeAdversarial2019}. By combining everything, we end up at the wanted decoder :
-
-\begin{equation}
-    \mathcal{L}_{\text{total}} (\textbf{x},\textbf{z}) \,=\, \mathcal{L}_{\text{gen}}(\textbf{z})\,+\,\mathbb{E}_{\bm\hat{\textbf{x}} \sim p(\textbf{x}|\textbf{z})}[S(\textbf{x}, \bm\hat{\textbf{x}}) + \mathcal{L}_{\text{FM}}(\textbf{x}, \bm\hat{\textbf{x}})].
-\end{equation}
-
-
-
-Moreover, the loss we used in the first step consists of two terms : the  reconstruction term $\mathbb{E}_{\hat{\textbf{x}} \sim p(\textbf{x}|\textbf{z})}[S(\textbf{x},\bm\hat{ \textbf{x}})]$ and the regularisation term $\mathcal{D}_{\text{KL}}(q_\phi (\textbf{z}|\textbf{x})||p(\textbf{z}))$. The reconstruction aims to maximise the mutual information between the latent representation and the data distribution while the regularisation tends to make the posterior distribution independent from data. The final objective guides the model to acquire condensed representations of the data. In this process, meaningful latent factors exhibit the greatest KL divergence from the prior distribution, whereas less informative latent factors have a KL divergence approaching zero, as outlined by Higgins et al. \cite{higginsVVAELEARNINGBASIC2017}.
-
-In order to better understand the latent representation, we will try to identify the most informative part of it. Our goal is to reduce the dimension of the representation learned to the minimum requierd to reconstruct the signal. To do this, we adapt the method for range and null space estimation to this problem.
-
-Let $\textbf{Z} \in \mathbb{R}^{b \times d}$ a matrix composed of $b$ samples $\textbf{z} \in \mathbb{R}^d$, where $\textbf{z} \sim q_\phi(\textbf{z}|\textbf{x})$. Since the collapsed parts of \textbf{Z} has a high variance, we first start to subtract the variance from \textbf{Z} by considering the matrix $\textbf{Z}' \in \mathbb{R}^{b \times d}$ :
-\begin{equation}
-    \textbf{Z}_i' = \text{argmax}_{\textbf{z}} q_\phi (\textbf{z}|\textbf{x}).
-\end{equation}
-Thus, the dimensions of the posterior distribution \(q_{\phi}(\textbf{z}|\textbf{x})\) that have collapsed to the prior \(p(\textbf{z})\) will yield a constant value in \(\textbf{Z}'\). To address this, we nullify this constant value by subtracting the mean of \(\textbf{Z}'\) along the first dimension. The only dimension of $\textbf{Z}'$ with values different from zero will be correlated to the input, which contais the informative part of the latent space.
-
-We can now decompose this centerd matrix into singular values :
-\begin{equation}
-    \textbf{Z}'\,=\, \textbf{U}\, \bm\Sigma \,^{\textbf{t}}\textbf{V},
-\end{equation}
-
-where $\bm\Sigma$ is composed by the singular values of $\textbf{Z}'$.
-Then, it can be showed that the rank $r$ of $\textbf{Z}'$ is equal to the number of non-zero singular values of $\textbf{Z}'$ present in $\bm\Sigma$. But the singular values that we want to identify as zero are not very likely to be strictly equal to zero, given the high variabilities in real data. So, if we want to find the rank of $\textbf{Z}'$, we must define a fidelity parameter $f \in [0,1]$ and the associated rank $r_f$ defined as the the smallest integer verifying :
-\begin{equation}
-    \frac{\sum_{i \leq r_f} \bm\Sigma_{ii}}{\sum_i \bm\Sigma_{ii}} \geq f.
-\end{equation}
-
-for a specific value of $f$ and a latent representation $\textbf{z} \sim q_\phi (\textbf{z}|\textbf{x})$, we can reduce the dimension of $\textbf{z}$ by projecting it on the base defined by $^\textbf{t}\textbf{V}$. We then only keep the $r_f$ first dimensions to obtain a low-rank representation of $\textbf{z}_f$. Note that this dimension depends on $f$ and the dataset. Finally, we concatenate $\textbf{z}_f$ with a noise sampled from the prior distribution, we reproject it on the the original basis using $\textbf{V}$ and we give it to the decoder.
 
 %\section{Citations, figures, tables}
 %\label{others}
@@ -590,8 +655,87 @@ for a specific value of $f$ and a latent representation $\textbf{z} \sim q_\phi 
 
 \section{Appendixes}
 
+\subsection{VAE on MNIST architecture Simple encoder}
+\label{subsec:VAE MNIST archi}
+
+This is the architecture of the image VAE trained on MNIST, here with $n_l = 2$
+\begin{lstlisting}
+VAE(
+  (encoder): Sequential(
+    (0): Flatten(start_dim=1, end_dim=-1)
+    (1): Linear(in_features=784, out_features=512, bias=True)
+    (2): ReLU()
+    (3): Linear(in_features=512, out_features=512, bias=True)
+    (4): ReLU()
+  )
+  (decoder): Sequential(
+    (0): Linear(in_features=2, out_features=512, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=512, out_features=784, bias=True)
+    (3): Sigmoid()
+  )
+  (mu): Linear(in_features=512, out_features=2, bias=True)
+  (sigma): Sequential(
+    (0): Linear(in_features=512, out_features=2, bias=True)
+    (1): Softplus(beta=1, threshold=20)
+  )
+)
+\end{lstlisting}
+
+\subsection{Our architecture}
+\begin{lstlisting}
+MelSpecVAE(
+  (encoder): Sequential(
+    (0): Conv1d(512, 256, kernel_size=(8,), stride=(2,), padding=(3,))
+    (1): LeakyReLU(negative_slope=0.01)
+    (2): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (3): Conv1d(256, 128, kernel_size=(8,), stride=(2,), padding=(3,))
+    (4): LeakyReLU(negative_slope=0.01)
+    (5): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (6): Conv1d(128, 64, kernel_size=(8,), stride=(2,), padding=(3,))
+    (7): LeakyReLU(negative_slope=0.01)
+    (8): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (9): Conv1d(64, 32, kernel_size=(8,), stride=(2,), padding=(3,))
+    (10): LeakyReLU(negative_slope=0.01)
+    (11): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (12): Conv1d(32, 16, kernel_size=(8,), stride=(2,), padding=(3,))
+    (13): LeakyReLU(negative_slope=0.01)
+    (14): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (15): Flatten(start_dim=1, end_dim=-1)
+  )
+  (decoder): Sequential(
+    (0): Linear(in_features=16, out_features=128, bias=True)
+    (1): LeakyReLU(negative_slope=0.01)
+    (2): Unflatten(dim=1, unflattened_size=torch.Size([16, 8]))
+    (3): ConvTranspose1d(16, 32, kernel_size=(8,), stride=(2,), padding=(3,))
+    (4): LeakyReLU(negative_slope=0.01)
+    (5): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (6): ConvTranspose1d(32, 64, kernel_size=(8,), stride=(2,), padding=(3,))
+    (7): LeakyReLU(negative_slope=0.01)
+    (8): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (9): ConvTranspose1d(64, 128, kernel_size=(8,), stride=(2,), padding=(3,))
+    (10): LeakyReLU(negative_slope=0.01)
+    (11): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (12): ConvTranspose1d(128, 256, kernel_size=(8,), stride=(2,), padding=(3,))
+    (13): LeakyReLU(negative_slope=0.01)
+    (14): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (15): ConvTranspose1d(256, 512, kernel_size=(8,), stride=(2,), padding=(3,))
+    (16): LeakyReLU(negative_slope=0.01)
+    (17): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+  )
+  (mu): Sequential(
+    (0): Linear(in_features=128, out_features=16, bias=True)
+  )
+  (sigma): Sequential(
+    (0): Linear(in_features=128, out_features=16, bias=True)
+    (1): Softplus(beta=1, threshold=20)
+  )
+)
+\end{lstlisting}
 
 \subsection{RAVE architecture}
+
+% @Enguérand ça peut aller ici ce que tu enlèves de l'intro
 
 \subsection{Task distribution}
 
